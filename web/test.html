@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Torrent creator</title>
+    <link href="js/bootstrap/bootstrap.css" rel="stylesheet">
+    <link href="js/bootstrap/bootstrap-icons.css" rel="stylesheet">
+    <script src="js/bootstrap/bootstrap.bundle.js"></script>
+    <script src="js/sortable.min.js"></script>
+    <script src="js/bs_dialogs.js"></script>
+    <script src="js/showdown.min.js"></script>
+    <style>
+        code {
+            background-color: RGBA(122, 122, 122, 0.5);
+            padding: 0 0.3em 0 0.3em;
+            border-radius: 0.2em;
+        }
+    </style>
+</head>
+<body data-bs-theme="dark">
+<div id="help_div"></div>
+
+
+<script>
+    let converter = new showdown.Converter()
+
+    function httpGetAsync(theUrl, callback) {
+        let xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState === 4 && xmlHttp.status === 200)
+                callback(xmlHttp.responseText);
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+
+
+    function load_md(d){
+        document.getElementById('help_div').innerHTML = converter.makeHtml(d);
+    }
+
+    window.onload = function (){
+
+
+        httpGetAsync('help.md', load_md)
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+import asyncio
+import ctypes
+import json
+import math
+import os.path
+import pickle
+import re
+import shutil
+from dataclasses import dataclass
+from uuid import uuid4
+
+import psutil
+import requests
+import webview
+from PIL import Image
+from imdb import IMDb
+from pymediainfo import MediaInfo
+from screeninfo import get_monitors
+
+from lib.lang import Lang
+from lib.settings import *
+from lib.wv_async import WVAsync, Settings, JsAsync
+
+
+@dataclass
+class IMDB:
+    movie = None
+    production_companies = []
+    country_codes = []
+    genres = []
+    language_codes = []
+    rating: float = 0
+    year: str = ''
+    _genres_rus = {
+        'Sci-Fi': 'научная фантастика', 'Drama': 'драма', 'Horror': 'ужасы', 'Thriller': 'триллер', 'Fantasy': 'фэнтези',
+        'Adventure': 'приключения'
+    }
+
+    @classmethod
+    def load(cls, imdb_id, cache_dir):
+        im = IMDb()
+        try:
+            with open(os.path.join(cache_dir, imdb_id + '.pickle'), 'rb') as f:
+                cls.movie = pickle.load(f)
+        except FileNotFoundError:
+            cls.movie = im.get_movie(imdb_id)
+            with open(os.path.join(cache_dir, imdb_id + '.pickle'), 'wb') as f:
+                pickle.dump(cls.movie, f)
+        for item in cls.movie['production companies']:
+             cls.production_companies.append(f'{item}')
+        for item in cls.movie['country codes']:
+             cls.country_codes.append(f'{item}')
+        for item in cls.movie['genres']:
+            cls.genres.append(f'{item}')
+        for item in cls.movie['language codes']:
+             cls.language_codes.append(f'{item}')
+        # # for key, val in cls.movie.items():
+        # #     print(key, val)
+        cls.rating = cls.movie['rating']
+        cls.year = cls.movie['year']
+
+@dataclass
+class KinoPoisk:
+    countries = []
+    genres = []
+    description: str = ''
+    nameOriginal: str = ''
+    nameRu: str = ''
+    ratingKinopoisk: float = 0
+    ratingImdb: float = 0
+    year: int = 0
+    imdbId: str = ''
+    actors = []
+    directors = []
+    producers = []
+    writers = []
+    operators = []
+    composers = []
+    designs = []
+    editors = []
+    _key = ''
+    _film_id = ''
+    _cache_dir = ''
+
+    @classmethod
+    def init(cls, key, cache_dir):
+        cls._key = key
+        cls._cache_dir = cache_dir
+
+    @classmethod
+    def _cache_load(cls, name):
+        try:
+            file = os.path.join(cls._cache_dir, name + cls._film_id + '.json')
+            print('load cache file', file)
+            json_data = json.load(open(file))
+            return json_data
+        except FileNotFoundError:
+            return None
+
+    @classmethod
+    def _cache_save(cls, cache_data, name):
+        file = os.path.join(cls._cache_dir, name + cls._film_id + '.json')
+        with open(file, 'w') as f:
+            json.dump(cache_data, f)
+
+    @classmethod
+    def set_id(cls, film_id):
+        cls._film_id = film_id
+        cls.get_film()
+        cls.get_staff()
+
+    @classmethod
+    def _get_data(cls, name, url):
+        cache = cls._cache_load(name)
+        if cache is None:
+            try:
+                x = requests.get(
+                    url,
+                    headers={"Content-Type": "application/json", 'X-API-KEY': cls._key},
+                )
+            except Exception as err:
+                pass
+            if x.status_code != 200:
+                pass
+            else:
+                print('cache_save')
+                cls._cache_save(x.json(), name)
+                return x.json()
+
+        else:
+            return cache
+
+    @classmethod
+    def get_film(cls):
+        data = cls._get_data('get_film', f'https://kinopoiskapiunofficial.tech/api/v2.2/films/{cls._film_id}')
+        for key, val in data.items():
+            if key == 'countries':
+                for item in val:
+                    cls.countries += list(item.values())
+            if key == 'genres':
+                for item in val:
+                    cls.genres += list(item.values())
+            if key == 'description':
+                for item in val:
+                    cls.description = val.replace("\n", "")
+            if key == 'nameOriginal':
+                cls.nameOriginal = val
+            if key == 'ratingKinopoisk':
+                cls.ratingKinopoisk = val
+            if key == 'ratingImdb':
+                cls.ratingImdb = val
+            if key == 'year':
+                cls.year = val
+            if key == 'imdbId':
+                cls.imdbId = val
+            if key == 'nameRu':
+                cls.nameRu = val
+
+    @classmethod
+    def get_staff(cls):
+        data = cls._get_data(
+            'get_staff',
+            f'https://kinopoiskapiunofficial.tech/api/v1/staff?filmId={cls._film_id}'
+        )
+        for item in data:
+            if item['professionKey'] == 'ACTOR':
+                cls.actors.append(item['nameRu'])
+            if item['professionKey'] == 'DIRECTOR':
+                cls.directors.append(item['nameRu'])
+            if item['professionKey'] == 'PRODUCER':
+                cls.producers.append(item['nameRu'])
+            if item['professionKey'] == 'WRITER':
+                cls.writers.append(item['nameRu'])
+            if item['professionKey'] == 'OPERATOR':
+                cls.operators.append(item['nameRu'])
+            if item['professionKey'] == 'COMPOSER':
+                cls.composers.append(item['nameRu'])
+            if item['professionKey'] == 'DESIGN':
+                cls.designs.append(item['nameRu'])
+            if item['professionKey'] == 'EDITOR':
+                cls.editors.append(item['nameRu'])
+
+@dataclass
+class IniSettings(YamlSettings):
+    def __init__(self, yaml_file_path):
+        super().__init__(yaml_file_path)
+
+    screenshot_scene: float = 0.5
+    min_screenshot_qty: int = 6
+    max_screenshots: int = 30
+    jpg_quality: int = 80
+    kinopoisk_key: str = ''
+
+
+@dataclass
+class MIText:
+    language: str = ''
+    language_str: str = ''
+
+@dataclass
+class MIAudio:
+    language: str = ''
+    language_str: str = ''
+    format: str = ''
+    bit_rate: int = 0
+    bit_rate_str: str = ''
+    channel_s : int = 0
+    channel_str: str = ''
+    title_translate_type: str = ''
+    title_description: str = ''
+
+@dataclass
+class MI:
+    video_width: int = 0
+    video_height: int = 0
+    video_format: str = ''
+    video_duration: float = 0
+    video_duration_str: str = ''
+    video_bit_rate: int = 0
+    video_bit_rate_str: str = ''
+    video_frame_rate: str = ''
+    audio_result_str: str = ''
+    video_result_str: str = ''
+    audio_header_str: str = ''
+
+    def __init__(self):
+        self.mi = None
+        self.mi: MediaInfo
+        self.audio = []
+        self.text = []
+
+    def parse(self, file):
+        self.mi = MediaInfo.parse(file)
+        video_track = False
+        for track in self.mi.tracks:
+            if track.track_type == "Video" and video_track == False:
+                video_track = True
+                self._parse_video(track)
+            if track.track_type == "Audio":
+                self._parse_audio(track)
+            if track.track_type == "Text":
+                self._parse_text(track)
+        # create audio result string
+        items = []
+        for idx, audio in enumerate(self.audio):
+            audio: MIAudio
+            items.append(f'{audio.language_str.lower()} ({audio.format}, {audio.channel_str}, {audio.bit_rate_str})')
+        self.audio_result_str = ', '.join(items)
+        self._audio_header()
+
+    def _parse_video(self, track):
+        vd = track.to_data()
+        self.video_width = vd['width']
+        self.video_height = vd['height']
+        self.video_format = self._video_codec(vd['format'])
+        self.video_duration = vd['duration']
+        self.video_duration_str = vd['other_duration'][3][0:-4]
+        self.video_bit_rate = vd['bit_rate']
+        self.video_frame_rate = vd['frame_rate']
+        self.video_bit_rate_str = self.human_bitrate(self.video_bit_rate)
+        self.video_result_str = (
+            f'{self.video_format}, {self.video_bit_rate_str}, {self.video_width}x{self.video_height}, '
+            f'{self.video_frame_rate} к/с')
+
+    def _parse_audio(self, track):
+        track = track.to_data()
+        ma = MIAudio()
+        n_track = ''
+        try:
+            n_track = track['track_id']
+            ma.language = track['language']
+            ma.format = self._audio_codec(track['format'])
+            ma.bit_rate = track['bit_rate']
+            ma.bit_rate_str = self.human_bitrate(ma.bit_rate)
+            ma.channel_s = track['channel_s']
+            ma.channel_str = f'{track['channel_s']} ch'
+            ma.language_str = Lang.get_language(ma.language)
+            #todo error handler
+            ma.title_translate_type, ma.title_description = self._audio_description(track['title'])
+            self.audio.append(ma)
+        except KeyError as e:
+            print(f'Запись о аудиотреке {n_track} не добавлена, не указан:', e)
+
+    def _parse_text(self, track):
+        track = track.to_data()
+        text = MIText()
+        n_track = ''
+        try:
+            n_track = track['track_id']
+            text.language = track['language']
+            text.language_str = Lang.get_language(text.language)
+            #TODO error handler
+            self.text.append(text)
+        except KeyError as e:
+            print(f'Запись о субтитрах {n_track} не добавлена, не указан:', e)
+
+
+    @staticmethod
+    def _audio_description(title: str):
+        find = re.compile(r'^.{2,3}\s(.{1,}$)')
+        suffix = ''
+        try:
+            suffix = find.findall(title)[0]
+        except IndexError:
+            pass
+        title_m = title.lower()
+        if title_m.startswith(("mvo", "мп")):
+            return 'МП', suffix
+        if title_m.startswith(("avo", "мп")):
+            return 'АП', suffix
+        if title_m.startswith(("dvo", "дп")):
+            return 'ДП', suffix
+        if title_m.startswith(("dub", "дб")):
+            return 'ДБ', suffix
+        return '', ''
+
+    def _audio_header(self):
+        out_dict = {}
+        for audio in self.audio:
+            audio: MIAudio
+            try:
+                out_dict[audio.title_translate_type] += 1
+            except KeyError:
+                out_dict[audio.title_translate_type] = 1
+        ret = []
+        for key, value in out_dict.items():
+            if key != '' and value > 1:
+                ret.append(f'{value} x {key}')
+            elif key != '' and value == 0:
+                ret.append(f'{value} x {key}')
+        sub = ''
+        if len(self.text) == 1:
+            sub = ', СТ'
+        elif len(self.text) > 1:
+            sub = f', {len(self.text)} x СТ'
+
+        self.audio_header_str = ', '.join(ret) + sub
+
+    @staticmethod
+    def _video_codec(codec: str) -> str:
+        codecs = {'MPEG-4 Visual': 'XviD', 'AVC': 'MPEG-4 AVC'}
+        if codec in codecs:
+            return codecs[codec]
+        else:
+            return codec
+
+    @staticmethod
+    def _audio_codec(codec: str) -> str:
+        codecs = {'AC-3': 'AC3'}
+        if codec in codecs:
+            return codecs[codec]
+        else:
+            return codec
+
+    @staticmethod
+    def human_bitrate(s: int) -> str:
+        units = ['б/с', 'кб/с', 'Мб/с', 'Гб/с', 'Тб/с']
+        for unit in units:
+            if s < 1000:
+                if int(s) == s:
+                    s = int(s)
+                    return f"{s} {unit}"
+                else:
+                    return f"{s:.1f} {unit}"
+            s /= 1000
+
+    def translate_str(self) -> str:
+        ret = []
+        for item in self.audio:
+            item: MIAudio
+            descr = item.title_description.strip()
+            if descr == '':
+                continue
+            ret.append(f'{item.title_translate_type} {descr}')
+        return ', '.join(ret)
+
+@dataclass
+class KP:
+    original: str = ''
+
+@dataclass
+class AppSettings(Settings):
+    main_window_width: int = 800
+    main_window_height: int = 600
+    display_width: int = 0
+    display_height: int = 0
+    mkv_file_name: str = ''
+    mkv_file_name_with_path: str = ''
+    display_scale_factor: float = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
+
+    def __init__(self):
+        super().__init__()
+        self._screen()
+        self.path_ffmpeg = os.path.join(self.path_add, 'ffmpeg.exe')
+        self.screenshots_path = os.path.join(self.path_web, 'work', 'screenshots')
+
+    def _screen(self):
+        for m in get_monitors():
+            if m.is_primary:
+                self.display_width = m.width
+                self.display_height = m.height
+                return
+
+
+class TorrentCreator:
+    def __init__(self, wv_app: WVAsync):
+        super().__init__()
+        self.s = AppSettings()
+        self.ini_s = IniSettings(os.path.join(self.s.path_add, 'settings.yaml'))
+        self.wv_app = wv_app
+        self.mi = MI()
+        self.wv_app.registry('on_closing', self._on_closing)
+        self.wv_app.registry('open_mkv', self.open_mkv)
+        self.wv_app.registry('create_screenshots', self.create_screenshots)
+        self.wv_app.registry('show_img', self.show_img)
+        self.wv_app.registry('hide_slave_window', self._hide_slave_window)
+        self.wv_app.registry('upload_screenshots', self.upload_screenshots)
+        self.wv_app.registry('show_settings', self._show_settings)
+        self.wv_app.registry('load_kinopoisk', self._load_kinopoisk)
+
+    async def _on_closing(self, d):
+        print('closing')
+        ret = await JsAsync.call(
+            """new BsDialogs().ok_cancel('Выход', 'Вы действительно хотите выйти?')""",
+            self.wv_app.window)
+        if ret == 'ok':
+            self.wv_app.window.minimize()
+            self.wv_app.window_slave.minimize()
+            self.wv_app.jq.sync_q.put_nowait({'closing': True})
+            self.wv_app.window.hide()
+        else:
+            return False
+
+    def _empty_all(self):
+        shutil.rmtree(self.s.screenshots_path, ignore_errors=True)
+        os.makedirs(self.s.screenshots_path)
+
+    async def _hide_slave_window(self):
+        self.wv_app.window_slave.hide()
+
+    def on_loaded(self):
+        """ on load dom main window """
+        self._empty_all()
+
+    async def show_img(self, img):
+        rand_token = uuid4()
+
+        # приводим дисплей к значениям с учетом scale_factor
+        display_width = math.ceil(self.s.display_width / self.s.display_scale_factor)
+        display_height = math.ceil(self.s.display_height / self.s.display_scale_factor)
+
+        w_k = display_width / self.mi.video_width
+        h_k = display_height / self.mi.video_height
+
+        print('h_k, w_k', h_k, w_k)
+
+        if w_k >= h_k:
+            magnification_k = h_k
+        else:
+            magnification_k = w_k
+
+        if magnification_k >= 1:
+            magnification_k = 1
+
+        window_slave_width = math.ceil(self.mi.video_width * 1.5 * magnification_k)
+        window_slave_height = math.ceil(self.mi.video_height * 1.5 * magnification_k)
+
+        img_width = math.ceil(self.mi.video_width * magnification_k)
+        img_height = math.ceil(self.mi.video_height * magnification_k)
+
+        left = self.s.display_width - window_slave_width
+        left = math.ceil(left / 2 / self.s.display_scale_factor)
+
+        right = self.s.display_height - window_slave_height
+        right = math.ceil(right / 2 / self.s.display_scale_factor)
+
+        self.wv_app.window_slave.resize(window_slave_width, window_slave_height)
+        self.wv_app.window_slave.move(left, right)
+        self.wv_app.window_slave.evaluate_js(
+            f"""set_picture('work/screenshots/{img}?{rand_token}', {img_width}, {img_height}, '{self.mi.video_width}x{self.mi.video_height}')"""
+        )
+        self.wv_app.window_slave.show()
+        print(img)
+
+    async def open_mkv(self):
+        print('open_mkv')
+        file_types = ('Video Files (*.mkv;*.mp4)', 'All files (*.*)')
+        result = self.wv_app.window.create_file_dialog(
+            webview.OPEN_DIALOG, allow_multiple=False, file_types=file_types
+        )
+        if result:
+            el = self.wv_app.window.dom.get_element('#input_file')
+            _, self.s.mkv_file_name = os.path.split(result[0])
+            el.value = self.s.mkv_file_name
+            self.s.mkv_file_name_with_path = result[0]
+            self._empty_all()
+            self.wv_app.window.evaluate_js("app.clean_screenshots()")
+            await self.on_open_mkv()
+
+    async def on_open_mkv(self):
+        self.mi.parse(self.s.mkv_file_name_with_path)
+
+    async def create_screenshots(self):
+        """create png files from video file"""
+        self.wv_app.window.evaluate_js("app.clean_screenshots(); spinner_modal.show()")
+        self._empty_all()
+        cmd = [
+            self.s.path_ffmpeg, '-i', f'{self.s.mkv_file_name_with_path}', '-to', '00:15:00', '-vf',
+            "select='gt(scene,0.3)',select='eq(pict_type,I)'", '-fps_mode', 'vfr', 'frame-%3d.png'
+        ]
+        print(self.s.screenshots_path)
+        psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE, cwd=self.s.screenshots_path
+            )
+        except Exception as e:
+            print(e)
+            return
+        psutil.Process().nice(psutil.NORMAL_PRIORITY_CLASS)  # reset current priority
+        while proc.returncode is None:
+            try:
+                buf = await proc.stderr.readuntil(b'\r')
+                if buf.startswith(b'frame='):
+                    self.wv_app.window.evaluate_js(f"""spinner_modal.text('Найдено: {buf[6:11].decode()}')""")
+                    if int(buf[6:11].decode()) > self.ini_s.max_screenshots:
+                        proc.terminate()
+                        break
+            except asyncio.IncompleteReadError:
+                break
+            if buf == b'':
+                break
+        await proc.communicate()
+        self.wv_app.window.evaluate_js("""spinner_modal.hide()""")
+
+        img_cnt = len(os.listdir(self.s.screenshots_path))
+        print('img_cnt', img_cnt)
+        self.wv_app.window.evaluate_js(f"""document.getElementById('img_cnt').innerHTML = 'Всего: {img_cnt}'""")
+        img_list = []
+        for item in range(1, img_cnt + 1):
+            img_list.append(f'frame-{item:03d}.png')
+        json_img = json.dumps(img_list)
+        print(json_img)
+        self.wv_app.window.evaluate_js(f"app.create_screenshots('{json_img}')")
+
+    async def upload_screenshots(self):
+        images = self.wv_app.window.evaluate_js('app.get_info_screenshots()')
+        if len(images) < 1:
+            ret = await JsAsync.call(
+                ("""new BsDialogs().ok('<i class="bi bi-exclamation-triangle"></i>',"""
+                 " 'Количество выбранных скриншотов должно быть не менее """
+                 f"{self.ini_s.min_screenshot_qty}')"),
+                self.wv_app.window)
+            print(ret)
+            return
+
+        self.wv_app.window.evaluate_js(f"""spinner_modal.show()""")
+        self.wv_app.window.evaluate_js(f"""spinner_modal.text('Создаем миниатюры')""")
+        miniature_size = 320, math.ceil(self.mi.video_height / self.mi.video_width * 320)
+        all_images = []
+        for image in images:
+            with Image.open(os.path.join(self.s.screenshots_path, image)) as im:
+                im1 = im.resize(miniature_size, Image.Resampling.LANCZOS)
+                pre, ext = os.path.splitext(image)
+                m_image = 'm_' + pre + '.jpg'
+                im1.save(os.path.join(self.s.screenshots_path, m_image), 'JPEG', quality=95)
+                all_images.append([image, m_image])
+        # upload to hosting
+        self.wv_app.window.evaluate_js(f"""spinner_modal.text('Загружаем картинки.')""")
+        psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+        ret_arr = []
+        ### UPLOAD
+        async def upload(img):
+            cmd = [os.path.join(self.s.path_add, 'imgupload', 'imgupload.exe'), '-s', 'fastpic.ru']
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd + [img], stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE, cwd=self.s.screenshots_path
+                )
+            except Exception as e:
+                print(e)
+                return
+
+            stdout, _ = await proc.communicate()
+            if stdout:
+                return stdout.decode()
+        i = 0
+        for images in all_images:
+            i += 1
+            im0 = await upload(images[0])
+            self.wv_app.window.evaluate_js(f"""spinner_modal.text('Загружено: {i}')""")
+            i += 1
+            im1 = await upload(images[1])
+            self.wv_app.window.evaluate_js(f"""spinner_modal.text('Загружено: {i}')""")
+            ret_arr.append([im0, im1])
+        self.wv_app.window.evaluate_js(f"""spinner_modal.hide()""")
+        psutil.Process().nice(psutil.NORMAL_PRIORITY_CLASS)  # reset current priority
+        phpbb = []
+        for item in ret_arr:
+            phpbb.append(f"[url={item[0]}][img]{item[1]}[/img][/url]")
+        self.wv_app.window.evaluate_js(f"""app.set_phpbb_screenshot('{json.dumps(phpbb)}')""")
+
+    async def _show_settings(self):
+        print('start settings')
+        def row(_, d, text):
+            return (f'<div class="row mb-1"><div class="col-8">{text}</div>'
+                    f'<div class="col-4">{d}</div></div>')
+
+        SettingsGui.row = row
+
+        SettingsGUISelect(self.ini_s.screenshot_scene, 'screenshot_scene', 'Разница между сценами',
+            [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]),
+        SettingsGUISelect(self.ini_s.jpg_quality, 'jpg_quality', 'Качество jpeg миниатюр',
+                          [60, 65, 70, 75, 80, 85, 90, 95])
+        SettingsGUIInput(self.ini_s.max_screenshots, 'max_screenshots', 'Максимальное количество скриншотов',
+                         'type="number" min="10" step="0" max="100"')
+        SettingsGUIInput(self.ini_s.min_screenshot_qty, 'min_screenshot_qty', 'Минимальное количество скриншотов',
+                         'type="number" min="6" step="0" max="20"')
+        SettingsGUIInput(self.ini_s.kinopoisk_key, 'kinopoisk_key', 'Ключ для получения данных с Кинопоиска',
+                         'type="text" pattern="[0-9a-fA-F-]{36}"')
+        form = ''
+        for key, value in SettingsGui.s_dict.items():
+            print(key, value)
+            form += f'{value}'
+
+        ret = await JsAsync.call(f'settings.show(`<form id="settings">{form}</form>`)', self.wv_app.window)
+
+        try:
+            for key, value in ret.items():
+                s = SettingsGui.s_dict[key]
+                ret[key] = s.type_fn(value)
+        except AttributeError:
+            return
+
+        self.ini_s.save(ret)
+
+    async def _load_kinopoisk(self, d):
+        cache_path = os.path.join(self.s.path_add, 'kp_cache')
+        KinoPoisk.init(self.ini_s.kinopoisk_key, cache_path)
+        try:
+            KinoPoisk.set_id(d)
+        except AttributeError:
+            await JsAsync.call(
+                f"""new BsDialogs().ok('Ошибка', 'Фильм с id {d} не найден.')""",
+                self.wv_app.window)
+            return
+        print(KinoPoisk.nameRu)

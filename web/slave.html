@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Show picture</title>
+    <link href="js/bootstrap/bootstrap.css" rel="stylesheet">
+    <link href="js/bootstrap/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        #close_btn {
+            background-color: rgba(60,60,60,0.3);
+        }
+    </style>
+</head>
+<body data-bs-theme="dark" onclick="pywebview.api.call('hide_slave_window')">
+<img class="position-relative w-100 object-fit-contain" alt="" id="big_img" src="work/screenshots/frame-006.png">
+<div class="position-absolute top-0 end-0" onclick="pywebview.api.call('hide_slave_window')">
+    <div class="p-1" id="close_btn" style="border-radius: 0 0 0 5px;"></div>
+</div>
+<script src="js/bootstrap/bootstrap.bundle.js"></script>
+<script>
+    function set_picture(pic_name, width, height, dimension_pic){
+        let img = document.getElementById('big_img')
+        img.src = pic_name
+        img.style.width = `${width}px`
+        img.style.height = `${height}px`
+        document.getElementById('close_btn').innerHTML = dimension_pic
+    }
+</script>
+</body>
+</html>
