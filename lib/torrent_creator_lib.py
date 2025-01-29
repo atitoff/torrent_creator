@@ -691,7 +691,6 @@ class TorrentCreator:
         await kz.start()
 
 
-
 class Kinozal:
     def __init__(self, tc: TorrentCreator):
         self.tc = tc
