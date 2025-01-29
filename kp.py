@@ -1,47 +1,21 @@
-from lib.torrent_creator_lib import KinoPoisk, IMDB
+from pymediainfo import MediaInfo
 import asyncio
 from pprint import pprint
 
 
 
+
 async def main():
-    KinoPoisk.init(
-        '6834c208-9ed1-451f-8d5d-6fcaa5f2a0f0',
-        r'C:\Users\User\PycharmProjects\torrent_creator\add\kp_cache'
-    )
-    try:
-        KinoPoisk.set_id('6063')
-    except AttributeError:
-        print('нет фильма')
-        return
-    print('genres', KinoPoisk.genres)
-    print('countries', KinoPoisk.countries)
-    print('description', KinoPoisk.description)
-    print('nameOriginal', KinoPoisk.nameOriginal)
-    print('nameRu', KinoPoisk.nameRu)
-    print('ratingKinopoisk', KinoPoisk.ratingKinopoisk)
-    print('imdbId', KinoPoisk.imdbId)
-    print('actors', KinoPoisk.actors)
-
-    # print('composers', KinoPoisk.composers)
-    # print('directors', KinoPoisk.directors)
-    # print('designs', KinoPoisk.designs)
-    # print('editors', KinoPoisk.editors)
-    # print('operators', KinoPoisk.operators)
-    # print('writers', KinoPoisk.writers)
-    # print('producers', KinoPoisk.producers)
-    try:
-        IMDB.load(KinoPoisk.imdbId[2:], r'C:\Users\User\PycharmProjects\torrent_creator\add\kp_cache')
-    except Exception as e:
-        print(e)
-        return
-    print(IMDB.production_companies)
-    print(IMDB.country_codes)
-    print(IMDB.language_codes)
-    print(IMDB.rating)
-    print(IMDB.year)
-    print(IMDB.genres)
-
+    media_info = MediaInfo.parse(r'D:\Downloads\video_torrent\films\video_test\hevc.mkv')
+    # for track in media_info.tracks:
+    #     if track.track_type == "Video":
+    #         pprint(track.to_data())
+    #     elif track.track_type == "Audio":
+    #         print("Track data:")
+    #         pprint(track.to_data())
+    print(media_info.to_data())
+    # media_info = MediaInfo.parse(r'D:\FilmWork\Zoia\zoia.mkv', output='text')
+    # print(media_info)
 
 
 

@@ -21,31 +21,58 @@
 <body data-bs-theme="dark">
 <div id="help_div"></div>
 
+<div class="up_combo_menu" style="width: 155px; display: none;">
+    BDRip
+    BDRip (AVC)
+    BDRip (720p)
+    BDRip (1080p)
+    BDRip (2160p)
+    Blu-Ray (1080p)
+    Blu-Ray (1080i)
+    Blu-Ray Remux (1080p)
+    Blu-Ray Remux (1080i)
+    Blu-Ray Remux (2160p)
+    DVB
+    DVD
+    DVD Remux
+    DVDRip
+    DVDRip (AVC)
+    HDRip
+    HDRip (AVC)
+    HDTV (720p)
+    HDTV (1080p)
+    HDTV (1080i)
+    HDTVRip
+    HDTVRip (AVC)
+    HDTVRip (720p)
+    HDTVRip (1080p)
+    Hybrid (2160p)
+    IPTV
+    IPTV (720p)
+    IPTV (1080p)
+    IPTV (1080i)
+    IPTVRip
+    SATRip
+    SATRip (AVC)
+    TVRip
+    UHDTV (2160p)
+    VHSRip
+    WEB-DL (720p)
+    WEB-DL (1080p)
+    WEB-DL (2160p)
+    WEB-DLRip
+    WEB-DLRip (AVC)
+    WEB-DLRip (720p)
+    WEB-DLRip (1080p)
+    WEBRip
+    WEBRip (AVC)
+    WEBRip (720p)
+    WEBRip (1080p)
+    WEBRip (2160p)
+
 
 <script>
-    let converter = new showdown.Converter()
 
-    function httpGetAsync(theUrl, callback) {
-        let xmlHttp = new XMLHttpRequest();
-        xmlHttp.onreadystatechange = function () {
-            if (xmlHttp.readyState === 4 && xmlHttp.status === 200)
-                callback(xmlHttp.responseText);
-        }
-        xmlHttp.open("GET", theUrl, true); // true for asynchronous
-        xmlHttp.send(null);
-    }
-
-
-
-    function load_md(d){
-        document.getElementById('help_div').innerHTML = converter.makeHtml(d);
-    }
-
-    window.onload = function (){
-
-
-        httpGetAsync('help.md', load_md)
-    }
 </script>
 </body>
 </html>

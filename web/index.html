@@ -173,6 +173,19 @@
                 <textarea readonly id="preliminary_description" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="3"></textarea>
             </div>
+            <div class="row p-1">
+                <div class="col-5">Технические данные</div>
+                <div class="col-3">
+                    <button class="btn-outline-secondary btn btn-sm"
+                            onclick="app.copy_to_clipboard(document.getElementById('tech_data'))">
+                        <i class="bi-copy"></i> Копировать
+                    </button>
+                </div>
+            </div>
+            <div class="ps-1 pe-1">
+                <textarea readonly id="tech_data" class="form-control text-body-secondary"
+                          style="resize: none; font-size: 75%;" rows="3"></textarea>
+            </div>
         </div>
     </div>
 </div>
@@ -182,11 +195,6 @@
 <script src="js/sortable.min.js"></script>
 <script src="js/bs_dialogs.js"></script>
 <script>
-    function greet() {
-        pywebview.api.click()
-    }
-
-
     class App {
         constructor(main_title_el) {
             this.main_title_el = main_title_el
@@ -534,6 +542,7 @@
             }
         }
     }
+
 
     class SpinnerModal {
         constructor(id) {

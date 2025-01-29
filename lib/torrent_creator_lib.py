@@ -7,7 +7,7 @@ import pickle
 import re
 import shutil
 from dataclasses import dataclass
-from typing import List
+from msilib import add_data
 from uuid import uuid4
 import urllib.parse
 
@@ -212,6 +212,9 @@ class MI:
     audio_result_str: str = ''
     video_result_str: str = ''
     audio_header_str: str = ''
+    text_format: str = ''
+    interlaced: bool = False
+    language: str = ''
 
     def __init__(self):
         self.mi = None
@@ -221,6 +224,7 @@ class MI:
 
     def parse(self, file):
         self.mi = MediaInfo.parse(file)
+        self.text_format = MediaInfo.parse(file, output='text')
         video_track = False
         for track in self.mi.tracks:
             if track.track_type == "Video" and video_track == False:
@@ -240,9 +244,14 @@ class MI:
 
     def _parse_video(self, track):
         vd = track.to_data()
+        try:
+            if vd['other_scan_type'] == ['Interlaced']:
+                self.interlaced = True
+        except KeyError:
+            pass
         self.video_width = vd['width']
         self.video_height = vd['height']
-        self.video_format = self._video_codec(vd['format'])
+        self.video_format = vd['format']
         self.video_duration = vd['duration']
         self.video_duration_str = vd['other_duration'][3][0:-4]
         self.video_bit_rate = vd['bit_rate']
@@ -325,13 +334,6 @@ class MI:
 
         self.audio_header_str = ', '.join(ret) + sub
 
-    @staticmethod
-    def _video_codec(codec: str) -> str:
-        codecs = {'MPEG-4 Visual': 'XviD', 'AVC': 'MPEG-4 AVC'}
-        if codec in codecs:
-            return codecs[codec]
-        else:
-            return codec
 
     @staticmethod
     def _audio_codec(codec: str) -> str:
@@ -651,31 +653,30 @@ class TorrentCreator:
                 f"""new BsDialogs().ok('Ошибка', 'Фильм с id {d} не найден.')""",
                 self.wv_app.window)
             return
+        print('kinopoisk.imdbId', self.kinopoisk.imdbId)
+        if self.kinopoisk.imdbId == '':
+            ret = await self._bs_form(
+                'Не найден IMDB ID, введите вручную',
+                '<form><input title="начинается с tt" required type="text" data-name="imdb_id" '
+                'pattern="^tt\\d{2,}"></input></form>',
+                'Ок'
+            )
+            if ret is not None:
+                self.kinopoisk.imdbId = ret['imdb_id']
         try:
+            if self.kinopoisk.imdbId == '':
+                raise ValueError('Not kinopoisk.imdbId')
             self.imdb = IMDB(self.kinopoisk.imdbId[2:], cache_path)
             self.wv_app.window.evaluate_js('spinner_modal.hide()')
         except Exception as e:
             self.wv_app.window.evaluate_js('spinner_modal.hide()')
             print(e)
-            while True:
-                ret = await JsAsync.call(
-                    """app.select_lang_code()""",
-                    self.wv_app.window
-                )
-                try:
-                    print('lang', ret['ln'])
-                    break
-                except TypeError or KeyError:
-                    continue
+            self.imdb = None
 
-        await self._fill_film_data()
+        await self._fill_film_data_kinozal()
 
-    async def _fill_film_data(self):
-        def released():
-            try:
-                return f"""{', '.join(self.kinopoisk.countries)}, {', '.join(self.imdb.production_companies)}"""
-            except AttributeError:
-                return f"""{', '.join(self.kinopoisk.countries)}"""
+    async def _fill_film_data_kinozal(self):
+        kz = Kinozal(self)
 
         d = list()
         d.append(f"[b]Название:[/b] {self.kinopoisk.nameRu}")
@@ -683,17 +684,118 @@ class TorrentCreator:
             d.append(f"[b]Оригинальное название:[/b] {self.kinopoisk.nameOriginal}")
         d.append(f"[b]Год выпуска:[/b] {self.kinopoisk.year}")
         d.append(f"[b]Жанр:[/b] {', '.join(self.kinopoisk.genres)}")
-        d.append(f"[b]Выпущено:[/b] {released()}")
+        d.append(f"[b]Выпущено:[/b] {kz.released()}")
         d.append(f"[b]Режиссер:[/b] {', '.join(self.kinopoisk.directors)}")
         d.append(f"[b]В ролях:[/b] {', '.join(self.kinopoisk.actors[0:10])}")
-        preliminary_description = '\r'.join(d)
-        ret = {'preliminary_description': urllib.parse.quote(preliminary_description)}
-        self.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
+        ret = {'preliminary_description': urllib.parse.quote('\r'.join(d))}
 
-        d = []
-        d.append(f"[b]Качество:[/b] WEB-DL (1080p)")
+
+        if self.imdb is not None:
+            try:
+                self.mi.language = self.imdb.language_codes[0]
+            except IndexError:
+                pass
+        else:
+            pass
+
+        while True:
+            add_dta= await self._bs_form(
+                'Дополнительные данные',
+                f'<form>{kz.add_data_form()}</form>',
+                'Выбрать'
+            )
+            if add_dta is not None:
+                break
+        try:
+            self.mi.language = add_dta['language']
+        except KeyError:
+            pass
+
+
+        d = list()
+        d.append(f"[b]Качество:[/b] {add_dta['video_quality']}")
         d.append(f"[b]Видео:[/b] {self.mi.video_result_str}")
         d.append(f"[b]Аудио:[/b] {self.mi.audio_result_str}")
         d.append(f"[b]Размер:[/b] ")
         d.append(f"[b]Продолжительность:[/b] {self.mi.video_duration_str}")
         d.append(f"[b]Перевод:[/b] Дублированный")
+        print(d)
+        ret.update({'tech_data': urllib.parse.quote('\r'.join(d))})
+
+        # заполняем поля вкладки Вывод
+        self.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
+
+
+class Kinozal:
+    def __init__(self, tc: TorrentCreator):
+        self.tc = tc
+
+    def released(self):
+        """
+        Выпущено
+        """
+        try:
+            return f"""{', '.join(self.tc.kinopoisk.countries)}, {', '.join(self.tc.imdb.production_companies)}"""
+        except AttributeError:
+            return f"""{', '.join(self.tc.kinopoisk.countries)}"""
+
+    def add_data_form(self):
+        d = self._select_video_quality('AVC')
+        frm = ('<select class="form-select" data-name="video_quality" required>'
+               '<option value="">Выберите качество видео</option>')
+        for item in d:
+            frm += f'<option value="{item}">{item}</option>'
+        frm += '</select>'
+        frm += self._select_language()
+        return frm
+
+    def _select_video_quality(self, codec):
+        mi: MI = self.tc.mi
+        video_quality = {
+            '': ['BDRip', 'DVB', 'DVD', 'DVD Remux', 'DVDRip', 'HDRip', 'HDTVRip', 'IPTV', 'IPTVRip', 'SATRip',
+                 'TVRip',
+                 'VHSRip', 'WEB-DLRip', 'WEBRip'],
+            '(AVC)': ['BDRip (AVC)', 'DVDRip (AVC)', 'HDRip (AVC)', 'HDTVRip (AVC)', 'SATRip (AVC)',
+                      'WEB-DLRip (AVC)',
+                      'WEBRip (AVC)'],
+            '(720p)': ['BDRip (720p)', 'HDTV (720p)', 'HDTVRip (720p)', 'IPTV (720p)', 'WEB-DL (720p)',
+                       'WEB-DLRip (720p)',
+                       'WEBRip (720p)'],
+            '(1080p)': ['BDRip (1080p)', 'Blu-Ray (1080p)', 'Blu-Ray Remux (1080p)', 'HDTV (1080p)',
+                        'HDTVRip (1080p)',
+                        'IPTV (1080p)', 'WEB-DL (1080p)', 'WEB-DLRip (1080p)', 'WEBRip (1080p)'],
+            '(2160p)': ['BDRip (2160p)', 'Blu-Ray Remux (2160p)', 'Hybrid (2160p)', 'UHDTV (2160p)',
+                        'WEB-DL (2160p)',
+                        'WEBRip (2160p)'],
+            '(1080i)': ['Blu-Ray (1080i)', 'Blu-Ray Remux (1080i)', 'HDTV (1080i)', 'IPTV (1080i)']}
+        q = ''
+
+        if mi.video_width < 1280 and mi.video_height <= 576 and codec == 'AVC':
+            q = 'AVC'
+        elif mi.video_width <= 1280 and 500 < mi.video_height <= 720:
+            q = '720'
+        elif mi.video_width <= 1920 and 600 < mi.video_height <= 1080:
+            q = '1080'
+        elif mi.video_width > 1920 or 1080 < mi.video_height:
+            q = '2160'
+        else:
+            return video_quality['']
+
+        if q == 'AVC' or q == '':
+            q = f'({q})'
+        elif mi.interlaced:
+            q = f'({q}i)'
+        else:
+            q = f'({q}p)'
+
+        return video_quality[q]
+
+    def _select_language(self):
+        if self.tc.mi.language == '':
+            frm = ('<select class="form-select mt-1" data-name="language" required>'
+                   '<option value="">Выберите оригинальный язык фильма</option>')
+            for ln, lang in Lang.get_language_common().items():
+                frm += f'<option value="{ln}">{lang}</option>'
+            return frm + '</select>'
+        else:
+            return ''
