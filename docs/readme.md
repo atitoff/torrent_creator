@@ -65,7 +65,7 @@
 ![](pic/mkv_save.png)
 
 ### Видео
+<video src='https://github.com/atitoff/torrent_creator/blob/master/docs/pic/bandicam%202025-01-29%2021-13-32-703.mp4' />
 
-https://github.com/atitoff/torrent_creator/blob/master/docs/pic/bandicam%202025-01-29%2021-13-32-703.mp4
 
 
