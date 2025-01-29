@@ -64,4 +64,4 @@
 
 ![](pic/mkv_save.png)
 
-![](pic/bandicam%202025-01-29%2021-13-32-703.mp4)
+<video src="pic/bandicam%202025-01-29%2021-13-32-703.mp4" width="100%" />
