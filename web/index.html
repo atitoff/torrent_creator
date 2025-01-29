@@ -46,11 +46,13 @@
         Torrent creator
     </div>
     <div>
+        <i id="err_btn" onclick="err.show()" class="bi bi-exclamation-octagon head_btn text-body-tertiary"></i>
+        <i style="width: 10em"></i>
         <i onclick="pywebview.api.call('show_settings')" class="bi bi-gear head_btn text-body-tertiary"></i>
         <i style="width: 10em"></i>
         <i class="bi bi-copy head_btn"></i>
         <i class="bi bi-dash-lg head_btn"></i>
-        <i class="bi bi-app head_btn"></i>
+        <!--<i class="bi bi-app head_btn"></i>-->
         <i class="bi bi-x-lg head_btn_close"></i>
     </div>
 </div>
@@ -103,12 +105,16 @@
                     </td>
                 </tr>
                 <tr>
+                    <td></td>
                     <td>
-
-                    </td>
-                    <td><button class="btn btn-outline-secondary mt-1" onclick="app.load_kinopoisk()">
+                        <button class="btn btn-outline-secondary mt-1" onclick="app.load_kinopoisk()">
                             Загрузить данные о фильме
-                        </button></td>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
                 </tr>
             </table>
 
@@ -136,15 +142,15 @@
             </div>
         </div>
         <div class="tab-pane fade" id="output-tab-pane" role="tabpanel" aria-labelledby="output-tab" tabindex="0">
-            <div class="d-flex justify-content-between p-1">
-                <div>Скриншоты</div>
-                <div>
+            <div class="row p-1">
+                <div class="col-5">Скриншоты</div>
+                <div class="col-3">
                     <button class="btn-outline-secondary btn btn-sm"
                             onclick="app.copy_to_clipboard(document.getElementById('phpbb_screenshot'))">
                         <i class="bi-copy"></i> Копировать
                     </button>
                 </div>
-                <div>
+                <div class="col-4">
                     <button class="btn-outline-secondary btn btn-sm" onclick="pywebview.api.call('upload_screenshots')">
                         Загрузить скриншоты на хостинг
                     </button>
@@ -154,7 +160,19 @@
                 <textarea readonly id="phpbb_screenshot" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="3"></textarea>
             </div>
-
+            <div class="row p-1">
+                <div class="col-5">Предварительное описание</div>
+                <div class="col-3">
+                    <button class="btn-outline-secondary btn btn-sm"
+                            onclick="app.copy_to_clipboard(document.getElementById('preliminary_description'))">
+                        <i class="bi-copy"></i> Копировать
+                    </button>
+                </div>
+            </div>
+            <div class="ps-1 pe-1">
+                <textarea readonly id="preliminary_description" class="form-control text-body-secondary"
+                          style="resize: none; font-size: 75%;" rows="3"></textarea>
+            </div>
         </div>
     </div>
 </div>
@@ -296,11 +314,11 @@
             navigator.clipboard.writeText(el.value);
         }
 
-        async load_kinopoisk(){
+        async load_kinopoisk() {
             // pywebview.api.call('load_kinopoisk')
             let id = document.getElementById('kinopoisk_id').value
             let regexp = /^\d{2,9}$/
-            if( regexp.test(id) ){
+            if (regexp.test(id)) {
                 pywebview.api.call('load_kinopoisk', id)
             } else {
                 await new BsDialogs().ok('Ошибка', 'Введите Кинопоиск ID в правильном формате')
@@ -308,6 +326,213 @@
 
         }
 
+        lang_code() {
+            return {
+                'en': 'Английский',
+                'ru': 'Русский',
+                'fr': 'Французский',
+                'it': 'Итальянский',
+                'de': 'Немецкий',
+                'ko': 'Корейский',
+                'ja': 'Японский',
+                'zh': 'Китайский',
+                'es': 'Испанский',
+                'pt': 'Португальский',
+                'pl': 'Польский',
+                'ab': 'Абхазский',
+                'ae': 'Авестийский',
+                'af': 'Африкаанс',
+                'ak': 'Акан',
+                'aa': 'Афарский',
+                'am': 'Амхарский',
+                'ar': 'Арабский',
+                'as': 'Ассамский',
+                'av': 'Аварский',
+                'ay': 'Аймара',
+                'az': 'Азербайджанский',
+                'ba': 'Башкирский',
+                'be': 'Белорусский',
+                'bg': 'Болгарский',
+                'bi': 'Бислама',
+                'bm': 'Бамбара',
+                'bn': 'Бенгальский',
+                'bo': 'Тибетский',
+                'br': 'Бретонский',
+                'bs': 'Боснийский',
+                'ca': 'Каталанский',
+                'ce': 'Чеченский',
+                'ch': 'Чаморро',
+                'co': 'Корсиканский',
+                'cs': 'Чешский',
+                'cu': 'Церковнославянский (Старославянский)',
+                'cv': 'Чувашский',
+                'cy': 'Валлийский',
+                'da': 'Датский',
+                'dv': 'Дивехи (Мальдивский)',
+                'dz': 'Дзонг-кэ',
+                'ee': 'Эве',
+                'el': 'Греческий (новогреческий)',
+                'eo': 'Эсперанто',
+                'et': 'Эстонский',
+                'eu': 'Баскский',
+                'fa': 'Персидский',
+                'ff': 'Фулах',
+                'fi': 'Финский',
+                'fj': 'Фиджи',
+                'fl': 'Филиппинский',
+                'fo': 'Фарерский',
+                'fy': 'Фризский',
+                'ga': 'Ирландский',
+                'gd': 'Гэльский',
+                'gl': 'Галисийский',
+                'gn': 'Гуарани',
+                'gu': 'Гуджарати',
+                'gv': 'Мэнский',
+                'ha': 'Хауса',
+                'he': 'Иврит',
+                'hi': 'Хинди',
+                'ho': 'Хиримоту',
+                'hr': 'Хорватский',
+                'hu': 'Венгерский',
+                'hy': 'Армянский',
+                'hz': 'Гереро',
+                'ia': 'Интерлингва',
+                'id': 'Индонезийский',
+                'ie': 'Интерлингве',
+                'ig': 'Игбо',
+                'ik': 'Инупиак',
+                'is': 'Исландский',
+                'iu': 'Инуктитут',
+                'jv': 'Яванский',
+                'ka': 'Грузинский',
+                'kg': 'Конго',
+                'ki': 'Кикуйю',
+                'kj': 'Киньяма',
+                'kk': 'Казахский',
+                'kl': 'Гренландский',
+                'km': 'Кхмерский',
+                'kn': 'Каннада',
+                'kr': 'Канури',
+                'ks': 'Кашмири',
+                'ku': 'Курдский',
+                'kv': 'Коми',
+                'kw': 'Корнский',
+                'ky': 'Кыргызский',
+                'la': 'Латинский',
+                'lb': 'Люксембургский',
+                'lg': 'Ганда',
+                'ln': 'Лингала',
+                'lo': 'Лаосский',
+                'lt': 'Литовский',
+                'lu': 'Луба-катанга',
+                'lv': 'Латышский',
+                'me': 'Мерянский',
+                'mg': 'Малагасийский',
+                'mh': 'Маршалльский',
+                'mi': 'Маори',
+                'mk': 'Македонский',
+                'ml': 'Малаялам',
+                'mn': 'Монгольский',
+                'mo': 'Молдавский',
+                'mr': 'Маратхи',
+                'ms': 'Малайский',
+                'mt': 'Мальтийский',
+                'my': 'Бирманский',
+                'na': 'Науру',
+                'nd': 'Ндебеле северный',
+                'ne': 'Непальский',
+                'ng': 'Ндунга',
+                'nl': 'Нидерландский',
+                'nn': 'Нюнорск',
+                'no': 'Норвежский',
+                'nr': 'Ндебеле южный',
+                'nv': 'Навахо',
+                'ny': 'Ньянджа',
+                'oc': 'Окситанский',
+                'oj': 'Оджибве',
+                'om': 'Оромо',
+                'or': 'Ория',
+                'os': 'Осетинский',
+                'pa': 'Пенджабский',
+                'pi': 'Пали',
+                'ps': 'Пушту',
+                'qu': 'Кечуа',
+                'rm': 'Ретороманский',
+                'rn': 'Рунди',
+                'ro': 'Румынский',
+                'rw': 'Руанда',
+                'sa': 'Санскрит',
+                'sc': 'Сардинский',
+                'sd': 'Синдхи',
+                'sg': 'Санго',
+                'si': 'Сингальский',
+                'sk': 'Словацкий',
+                'sl': 'Словенский',
+                'sm': 'Самоанский',
+                'sn': 'Шона',
+                'so': 'Сомали',
+                'sq': 'Албанский',
+                'sr': 'Сербский',
+                'ss': 'Свази',
+                'st': 'Сото южный',
+                'su': 'Сунданский',
+                'sv': 'Шведский',
+                'sw': 'Суахили',
+                'ta': 'Тамильский',
+                'te': 'Телугу',
+                'tg': 'Таджикский',
+                'th': 'Тайский',
+                'ti': 'Тигринья',
+                'tk': 'Туркменский',
+                'tl': 'Тагальский',
+                'tn': 'Тсвана',
+                'to': 'Тонганский',
+                'tr': 'Турецкий',
+                'ts': 'Тсонга',
+                'tt': 'Татарский',
+                'tw': 'Тви',
+                'ty': 'Таитянский',
+                'ug': 'Уйгурский',
+                'uk': 'Украинский',
+                'ur': 'Урду',
+                'uz': 'Узбекский',
+                've': 'Венда',
+                'vi': 'Вьетнамский',
+                'vo': 'Волапюк',
+                'wo': 'Волоф',
+                'xh': 'Коса',
+                'yi': 'Идиш',
+                'yo': 'Йоруба',
+                'za': 'Чжуанский',
+                'zu': 'Зулу'
+            }
+        }
+
+        async select_lang_code() {
+            let frm = '<div class="mb-1">Выберите оригинальный язык фильма:</div><form><select size="10" data-name="ln" class="form-select form-select-sm">'
+            for (const [key, value] of Object.entries(this.lang_code())) {
+                frm += `<option value="${key}">${value}</option>`
+            }
+            frm += '</select></form>'
+            let dlg = new BsDialogs()
+            dlg.form('Язык', 'Ок', frm)
+            return await dlg.onsubmit()
+        }
+
+        async bs_form(d){
+            d = JSON.parse(d)
+            console.log(d)
+            let dlg = new BsDialogs(d['options'])
+            dlg.form(decodeURIComponent(d['frm_header']), decodeURIComponent(d['btn']), decodeURIComponent(d['frm']))
+            return await dlg.onsubmit()
+        }
+
+        fill_description(d) {
+            d = JSON.parse(d)
+            for (const [key, value] of Object.entries(d)) {
+                document.getElementById(key).innerHTML = decodeURIComponent(value)
+            }
+        }
     }
 
     class SpinnerModal {
@@ -352,17 +577,29 @@
         }
     }
 
-    class Settings {
-        async show(d) {
-            let dlg = new BsDialogs({size: 'xl', scrollable: true})
-            dlg.form('Настройки', 'Сохранить', d)
-            return await dlg.onsubmit()
+
+    class Errors{
+        constructor(el_btn) {
+            this.el_btn = el_btn
+            el_btn.style.visibility = 'hidden'
+        }
+        show(){
+
+        }
+
+        add_warning(){
+
+        }
+
+        add_error(){
+
         }
     }
 
+    err = new Errors(document.getElementById('err_btn'))
     app = new App(document.getElementById('main_title'))
     spinner_modal = new SpinnerModal('spinner_modal')
-    settings = new Settings()
+
 
 
 </script>

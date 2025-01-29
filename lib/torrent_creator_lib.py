@@ -7,7 +7,9 @@ import pickle
 import re
 import shutil
 from dataclasses import dataclass
+from typing import List
 from uuid import uuid4
+import urllib.parse
 
 import psutil
 import requests
@@ -22,101 +24,86 @@ from lib.settings import *
 from lib.wv_async import WVAsync, Settings, JsAsync
 
 
-@dataclass
 class IMDB:
-    movie = None
-    production_companies = []
-    country_codes = []
-    genres = []
-    language_codes = []
-    rating: float = 0
-    year: str = ''
-    _genres_rus = {
-        'Sci-Fi': 'научная фантастика', 'Drama': 'драма', 'Horror': 'ужасы', 'Thriller': 'триллер', 'Fantasy': 'фэнтези',
-        'Adventure': 'приключения'
-    }
-
-    @classmethod
-    def load(cls, imdb_id, cache_dir):
+    def __init__(self, imdb_id, cache_dir):
+        self.movie = None
+        self.production_companies = []
+        self.country_codes = []
+        self.genres = []
+        self.language_codes = []
+        self.rating: float = 0
+        self.year: str = ''
         im = IMDb()
         try:
             with open(os.path.join(cache_dir, imdb_id + '.pickle'), 'rb') as f:
-                cls.movie = pickle.load(f)
+                self.movie = pickle.load(f)
         except FileNotFoundError:
-            cls.movie = im.get_movie(imdb_id)
+            self.movie = im.get_movie(imdb_id)
             with open(os.path.join(cache_dir, imdb_id + '.pickle'), 'wb') as f:
-                pickle.dump(cls.movie, f)
-        for item in cls.movie['production companies']:
-             cls.production_companies.append(f'{item}')
-        for item in cls.movie['country codes']:
-             cls.country_codes.append(f'{item}')
-        for item in cls.movie['genres']:
-            cls.genres.append(f'{item}')
-        for item in cls.movie['language codes']:
-             cls.language_codes.append(f'{item}')
+                pickle.dump(self.movie, f)
+        for item in self.movie['production companies']:
+            self.production_companies.append(f'{item}')
+        for item in self.movie['country codes']:
+            self.country_codes.append(f'{item}')
+        for item in self.movie['genres']:
+            self.genres.append(f'{item}')
+        for item in self.movie['language codes']:
+            self.language_codes.append(f'{item}')
         # # for key, val in cls.movie.items():
         # #     print(key, val)
-        cls.rating = cls.movie['rating']
-        cls.year = cls.movie['year']
+        self.rating = self.movie['rating']
+        self.year = self.movie['year']
 
-@dataclass
+
 class KinoPoisk:
-    countries = []
-    genres = []
-    description: str = ''
-    nameOriginal: str = ''
-    nameRu: str = ''
-    ratingKinopoisk: float = 0
-    ratingImdb: float = 0
-    year: int = 0
-    imdbId: str = ''
-    actors = []
-    directors = []
-    producers = []
-    writers = []
-    operators = []
-    composers = []
-    designs = []
-    editors = []
-    _key = ''
-    _film_id = ''
-    _cache_dir = ''
+    def __init__(self, key, cache_dir):
+        self.countries = []
+        self.genres = []
+        self.description: str = ''
+        self.nameOriginal: str = ''
+        self.nameRu: str = ''
+        self.ratingKinopoisk: float = 0
+        self.ratingImdb: float = 0
+        self.year: int = 0
+        self.imdbId: str = ''
+        self.actors = []
+        self.directors = []
+        self.producers = []
+        self.writers = []
+        self.operators = []
+        self.composers = []
+        self.designs = []
+        self.editors = []
+        self._film_id = ''
+        self._key = key
+        self._cache_dir = cache_dir
 
-    @classmethod
-    def init(cls, key, cache_dir):
-        cls._key = key
-        cls._cache_dir = cache_dir
-
-    @classmethod
-    def _cache_load(cls, name):
+    def _cache_load(self, name):
         try:
-            file = os.path.join(cls._cache_dir, name + cls._film_id + '.json')
+            file = os.path.join(self._cache_dir, name + self._film_id + '.json')
             print('load cache file', file)
             json_data = json.load(open(file))
             return json_data
         except FileNotFoundError:
             return None
 
-    @classmethod
-    def _cache_save(cls, cache_data, name):
-        file = os.path.join(cls._cache_dir, name + cls._film_id + '.json')
+    def _cache_save(self, cache_data, name):
+        file = os.path.join(self._cache_dir, name + self._film_id + '.json')
         with open(file, 'w') as f:
             json.dump(cache_data, f)
 
-    @classmethod
-    def set_id(cls, film_id):
-        cls._film_id = film_id
-        cls.get_film()
-        cls.get_staff()
+    def set_id(self, film_id):
+        self._film_id = film_id
+        self._get_film()
+        self._get_staff()
 
-    @classmethod
-    def _get_data(cls, name, url):
-        cache = cls._cache_load(name)
+    def _get_data(self, name, url):
+        cache = self._cache_load(name)
         if cache is None:
             try:
                 x = requests.get(
                     url,
-                    headers={"Content-Type": "application/json", 'X-API-KEY': cls._key},
+                    headers={"Content-Type": "application/json", 'X-API-KEY': self._key},
                 )
             except Exception as err:
                 pass
@@ -124,61 +111,62 @@ class KinoPoisk:
                 pass
             else:
                 print('cache_save')
-                cls._cache_save(x.json(), name)
+                self._cache_save(x.json(), name)
                 return x.json()
 
         else:
             return cache
 
-    @classmethod
-    def get_film(cls):
-        data = cls._get_data('get_film', f'https://kinopoiskapiunofficial.tech/api/v2.2/films/{cls._film_id}')
+    def _get_film(self):
+        data = self._get_data('get_film', f'https://kinopoiskapiunofficial.tech/api/v2.2/films/{self._film_id}')
         for key, val in data.items():
+            if val is None:
+                continue
             if key == 'countries':
                 for item in val:
-                    cls.countries += list(item.values())
+                    self.countries += list(item.values())
             if key == 'genres':
                 for item in val:
-                    cls.genres += list(item.values())
+                    self.genres += list(item.values())
             if key == 'description':
                 for item in val:
-                    cls.description = val.replace("\n", "")
+                    self.description = val.replace("\n", "")
             if key == 'nameOriginal':
-                cls.nameOriginal = val
+                self.nameOriginal = val
             if key == 'ratingKinopoisk':
-                cls.ratingKinopoisk = val
+                self.ratingKinopoisk = val
             if key == 'ratingImdb':
-                cls.ratingImdb = val
+                self.ratingImdb = val
             if key == 'year':
-                cls.year = val
+                self.year = val
             if key == 'imdbId':
-                cls.imdbId = val
+                self.imdbId = val
             if key == 'nameRu':
-                cls.nameRu = val
+                self.nameRu = val
 
-    @classmethod
-    def get_staff(cls):
-        data = cls._get_data(
+    def _get_staff(self):
+        data = self._get_data(
             'get_staff',
-            f'https://kinopoiskapiunofficial.tech/api/v1/staff?filmId={cls._film_id}'
+            f'https://kinopoiskapiunofficial.tech/api/v1/staff?filmId={self._film_id}'
         )
         for item in data:
             if item['professionKey'] == 'ACTOR':
-                cls.actors.append(item['nameRu'])
+                self.actors.append(item['nameRu'])
             if item['professionKey'] == 'DIRECTOR':
-                cls.directors.append(item['nameRu'])
+                self.directors.append(item['nameRu'])
             if item['professionKey'] == 'PRODUCER':
-                cls.producers.append(item['nameRu'])
+                self.producers.append(item['nameRu'])
             if item['professionKey'] == 'WRITER':
-                cls.writers.append(item['nameRu'])
+                self.writers.append(item['nameRu'])
             if item['professionKey'] == 'OPERATOR':
-                cls.operators.append(item['nameRu'])
+                self.operators.append(item['nameRu'])
             if item['professionKey'] == 'COMPOSER':
-                cls.composers.append(item['nameRu'])
+                self.composers.append(item['nameRu'])
             if item['professionKey'] == 'DESIGN':
-                cls.designs.append(item['nameRu'])
+                self.designs.append(item['nameRu'])
             if item['professionKey'] == 'EDITOR':
-                cls.editors.append(item['nameRu'])
+                self.editors.append(item['nameRu'])
+
 
 @dataclass
 class IniSettings(YamlSettings):
@@ -197,6 +185,7 @@ class MIText:
     language: str = ''
     language_str: str = ''
 
+
 @dataclass
 class MIAudio:
     language: str = ''
@@ -204,10 +193,11 @@ class MIAudio:
     format: str = ''
     bit_rate: int = 0
     bit_rate_str: str = ''
-    channel_s : int = 0
+    channel_s: int = 0
     channel_str: str = ''
     title_translate_type: str = ''
     title_description: str = ''
+
 
 @dataclass
 class MI:
@@ -275,7 +265,7 @@ class MI:
             ma.channel_s = track['channel_s']
             ma.channel_str = f'{track['channel_s']} ch'
             ma.language_str = Lang.get_language(ma.language)
-            #todo error handler
+            # todo error handler
             ma.title_translate_type, ma.title_description = self._audio_description(track['title'])
             self.audio.append(ma)
         except KeyError as e:
@@ -289,11 +279,10 @@ class MI:
             n_track = track['track_id']
             text.language = track['language']
             text.language_str = Lang.get_language(text.language)
-            #TODO error handler
+            # TODO error handler
             self.text.append(text)
         except KeyError as e:
             print(f'Запись о субтитрах {n_track} не добавлена, не указан:', e)
-
 
     @staticmethod
     def _audio_description(title: str):
@@ -374,9 +363,6 @@ class MI:
             ret.append(f'{item.title_translate_type} {descr}')
         return ', '.join(ret)
 
-@dataclass
-class KP:
-    original: str = ''
 
 @dataclass
 class AppSettings(Settings):
@@ -409,6 +395,8 @@ class TorrentCreator:
         self.ini_s = IniSettings(os.path.join(self.s.path_add, 'settings.yaml'))
         self.wv_app = wv_app
         self.mi = MI()
+        self.kinopoisk: KinoPoisk
+        self.imbd: IMDB
         self.wv_app.registry('on_closing', self._on_closing)
         self.wv_app.registry('open_mkv', self.open_mkv)
         self.wv_app.registry('create_screenshots', self.create_screenshots)
@@ -441,6 +429,17 @@ class TorrentCreator:
     def on_loaded(self):
         """ on load dom main window """
         self._empty_all()
+
+    async def _bs_form(self, frm_header, frm, btn, options=None):
+        if options is None:
+            options = {}
+        d = {
+            'frm_header': urllib.parse.quote(frm_header),
+            'frm': urllib.parse.quote(frm),
+            'btn': urllib.parse.quote(btn),
+            'options': options
+        }
+        return await JsAsync.call(f"app.bs_form('{json.dumps(d)}')", self.wv_app.window)
 
     async def show_img(self, img):
         rand_token = uuid4()
@@ -570,6 +569,7 @@ class TorrentCreator:
         self.wv_app.window.evaluate_js(f"""spinner_modal.text('Загружаем картинки.')""")
         psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
         ret_arr = []
+
         ### UPLOAD
         async def upload(img):
             cmd = [os.path.join(self.s.path_add, 'imgupload', 'imgupload.exe'), '-s', 'fastpic.ru']
@@ -585,6 +585,7 @@ class TorrentCreator:
             stdout, _ = await proc.communicate()
             if stdout:
                 return stdout.decode()
+
         i = 0
         for images in all_images:
             i += 1
@@ -603,6 +604,7 @@ class TorrentCreator:
 
     async def _show_settings(self):
         print('start settings')
+
         def row(_, d, text):
             return (f'<div class="row mb-1"><div class="col-8">{text}</div>'
                     f'<div class="col-4">{d}</div></div>')
@@ -610,7 +612,7 @@ class TorrentCreator:
         SettingsGui.row = row
 
         SettingsGUISelect(self.ini_s.screenshot_scene, 'screenshot_scene', 'Разница между сценами',
-            [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]),
+                          [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]),
         SettingsGUISelect(self.ini_s.jpg_quality, 'jpg_quality', 'Качество jpeg миниатюр',
                           [60, 65, 70, 75, 80, 85, 90, 95])
         SettingsGUIInput(self.ini_s.max_screenshots, 'max_screenshots', 'Максимальное количество скриншотов',
@@ -624,7 +626,8 @@ class TorrentCreator:
             print(key, value)
             form += f'{value}'
 
-        ret = await JsAsync.call(f'settings.show(`<form id="settings">{form}</form>`)', self.wv_app.window)
+        form = f'<form id="settings">{form}</form>'
+        ret = await self._bs_form('Настройки', form, 'Сохранить', options={'size': 'xl', 'scrollable': True})
 
         try:
             for key, value in ret.items():
@@ -637,12 +640,60 @@ class TorrentCreator:
 
     async def _load_kinopoisk(self, d):
         cache_path = os.path.join(self.s.path_add, 'kp_cache')
-        KinoPoisk.init(self.ini_s.kinopoisk_key, cache_path)
+        self.kinopoisk = KinoPoisk(self.ini_s.kinopoisk_key, cache_path)
         try:
-            KinoPoisk.set_id(d)
+            self.kinopoisk.set_id(d)
+            self.wv_app.window.evaluate_js('spinner_modal.show()')
+            self.wv_app.window.evaluate_js('spinner_modal.text("Ищем информацию на Кинопоиск и IMDB...")')
         except AttributeError:
+            self.wv_app.window.evaluate_js('spinner_modal.hide()')
             await JsAsync.call(
                 f"""new BsDialogs().ok('Ошибка', 'Фильм с id {d} не найден.')""",
                 self.wv_app.window)
             return
-        print(KinoPoisk.nameRu)
+        try:
+            self.imdb = IMDB(self.kinopoisk.imdbId[2:], cache_path)
+            self.wv_app.window.evaluate_js('spinner_modal.hide()')
+        except Exception as e:
+            self.wv_app.window.evaluate_js('spinner_modal.hide()')
+            print(e)
+            while True:
+                ret = await JsAsync.call(
+                    """app.select_lang_code()""",
+                    self.wv_app.window
+                )
+                try:
+                    print('lang', ret['ln'])
+                    break
+                except TypeError or KeyError:
+                    continue
+
+        await self._fill_film_data()
+
+    async def _fill_film_data(self):
+        def released():
+            try:
+                return f"""{', '.join(self.kinopoisk.countries)}, {', '.join(self.imdb.production_companies)}"""
+            except AttributeError:
+                return f"""{', '.join(self.kinopoisk.countries)}"""
+
+        d = list()
+        d.append(f"[b]Название:[/b] {self.kinopoisk.nameRu}")
+        if self.kinopoisk.nameOriginal is not None:
+            d.append(f"[b]Оригинальное название:[/b] {self.kinopoisk.nameOriginal}")
+        d.append(f"[b]Год выпуска:[/b] {self.kinopoisk.year}")
+        d.append(f"[b]Жанр:[/b] {', '.join(self.kinopoisk.genres)}")
+        d.append(f"[b]Выпущено:[/b] {released()}")
+        d.append(f"[b]Режиссер:[/b] {', '.join(self.kinopoisk.directors)}")
+        d.append(f"[b]В ролях:[/b] {', '.join(self.kinopoisk.actors[0:10])}")
+        preliminary_description = '\r'.join(d)
+        ret = {'preliminary_description': urllib.parse.quote(preliminary_description)}
+        self.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
+
+        d = []
+        d.append(f"[b]Качество:[/b] WEB-DL (1080p)")
+        d.append(f"[b]Видео:[/b] {self.mi.video_result_str}")
+        d.append(f"[b]Аудио:[/b] {self.mi.audio_result_str}")
+        d.append(f"[b]Размер:[/b] ")
+        d.append(f"[b]Продолжительность:[/b] {self.mi.video_duration_str}")
+        d.append(f"[b]Перевод:[/b] Дублированный")

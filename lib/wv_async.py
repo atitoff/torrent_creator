@@ -122,3 +122,4 @@ class JsAsync:
         ret_val = cls.event_dict[idc][1]
         del cls.event_dict[idc]
         return ret_val
+

@@ -7,10 +7,10 @@ from pprint import pprint
 async def main():
     KinoPoisk.init(
         '6834c208-9ed1-451f-8d5d-6fcaa5f2a0f0',
-        r'C:\Users\User\PycharmProjects\TorrentCreator\add\kp_cache'
+        r'C:\Users\User\PycharmProjects\torrent_creator\add\kp_cache'
     )
     try:
-        KinoPoisk.set_id('6060')
+        KinoPoisk.set_id('6063')
     except AttributeError:
         print('нет фильма')
         return
@@ -30,7 +30,11 @@ async def main():
     # print('operators', KinoPoisk.operators)
     # print('writers', KinoPoisk.writers)
     # print('producers', KinoPoisk.producers)
-    IMDB.load(KinoPoisk.imdbId[2:], r'C:\Users\User\PycharmProjects\TorrentCreator\add\kp_cache')
+    try:
+        IMDB.load(KinoPoisk.imdbId[2:], r'C:\Users\User\PycharmProjects\torrent_creator\add\kp_cache')
+    except Exception as e:
+        print(e)
+        return
     print(IMDB.production_companies)
     print(IMDB.country_codes)
     print(IMDB.language_codes)
