@@ -215,6 +215,7 @@ class MI:
     text_format: str = ''
     interlaced: bool = False
     language: str = ''
+    file_size: int = 0
 
     def __init__(self):
         self.mi = None
@@ -224,6 +225,7 @@ class MI:
 
     def parse(self, file):
         self.mi = MediaInfo.parse(file)
+        self.file_size = os.path.getsize(file)
         self.text_format = MediaInfo.parse(file, output='text')
         video_track = False
         for track in self.mi.tracks:
@@ -355,6 +357,18 @@ class MI:
                     return f"{s:.1f} {unit}"
             s /= 1000
 
+    @staticmethod
+    def human_size(s: int) -> str:
+        units = ['Б', 'кБ', 'МБ', 'ГБ', 'ТБ']
+        for unit in units:
+            if s < 1000:
+                if int(s) == s:
+                    s = int(s)
+                    return f"{s} {unit}"
+                else:
+                    return f"{s:.1f} {unit}"
+            s /= 1024
+
     def translate_str(self) -> str:
         ret = []
         for item in self.audio:
@@ -432,7 +446,7 @@ class TorrentCreator:
         """ on load dom main window """
         self._empty_all()
 
-    async def _bs_form(self, frm_header, frm, btn, options=None):
+    async def bs_form(self, frm_header, frm, btn, options=None):
         if options is None:
             options = {}
         d = {
@@ -655,7 +669,7 @@ class TorrentCreator:
             return
         print('kinopoisk.imdbId', self.kinopoisk.imdbId)
         if self.kinopoisk.imdbId == '':
-            ret = await self._bs_form(
+            ret = await self.bs_form(
                 'Не найден IMDB ID, введите вручную',
                 '<form><input title="начинается с tt" required type="text" data-name="imdb_id" '
                 'pattern="^tt\\d{2,}"></input></form>',
@@ -673,35 +687,41 @@ class TorrentCreator:
             print(e)
             self.imdb = None
 
-        await self._fill_film_data_kinozal()
-
-    async def _fill_film_data_kinozal(self):
         kz = Kinozal(self)
+        await kz.start()
 
+
+
+class Kinozal:
+    def __init__(self, tc: TorrentCreator):
+        self.tc = tc
+        self.kinopoisk = self.tc.kinopoisk
+        self.mi = self.tc.mi
+
+    async def start(self):
         d = list()
         d.append(f"[b]Название:[/b] {self.kinopoisk.nameRu}")
         if self.kinopoisk.nameOriginal is not None:
             d.append(f"[b]Оригинальное название:[/b] {self.kinopoisk.nameOriginal}")
         d.append(f"[b]Год выпуска:[/b] {self.kinopoisk.year}")
         d.append(f"[b]Жанр:[/b] {', '.join(self.kinopoisk.genres)}")
-        d.append(f"[b]Выпущено:[/b] {kz.released()}")
+        d.append(f"[b]Выпущено:[/b] {self._released()}")
         d.append(f"[b]Режиссер:[/b] {', '.join(self.kinopoisk.directors)}")
         d.append(f"[b]В ролях:[/b] {', '.join(self.kinopoisk.actors[0:10])}")
         ret = {'preliminary_description': urllib.parse.quote('\r'.join(d))}
 
-
-        if self.imdb is not None:
+        if self.tc.imdb is not None:
             try:
-                self.mi.language = self.imdb.language_codes[0]
+                self.mi.language = self.tc.imdb.language_codes[0]
             except IndexError:
                 pass
         else:
             pass
 
         while True:
-            add_dta= await self._bs_form(
+            add_dta = await self.tc.bs_form(
                 'Дополнительные данные',
-                f'<form>{kz.add_data_form()}</form>',
+                f'<form>{self._add_data_form()}</form>',
                 'Выбрать'
             )
             if add_dta is not None:
@@ -711,35 +731,29 @@ class TorrentCreator:
         except KeyError:
             pass
 
-
         d = list()
         d.append(f"[b]Качество:[/b] {add_dta['video_quality']}")
         d.append(f"[b]Видео:[/b] {self.mi.video_result_str}")
         d.append(f"[b]Аудио:[/b] {self.mi.audio_result_str}")
-        d.append(f"[b]Размер:[/b] ")
+        d.append(f"[b]Размер:[/b] {self.mi.human_size(self.mi.file_size)}")
         d.append(f"[b]Продолжительность:[/b] {self.mi.video_duration_str}")
-        d.append(f"[b]Перевод:[/b] Дублированный")
+        d.append(f"[b]Перевод:[/b] {self.mi.translate_str()}")
         print(d)
         ret.update({'tech_data': urllib.parse.quote('\r'.join(d))})
 
         # заполняем поля вкладки Вывод
-        self.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
+        self.tc.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
 
-
-class Kinozal:
-    def __init__(self, tc: TorrentCreator):
-        self.tc = tc
-
-    def released(self):
+    def _released(self):
         """
         Выпущено
         """
         try:
-            return f"""{', '.join(self.tc.kinopoisk.countries)}, {', '.join(self.tc.imdb.production_companies)}"""
+            return f"""{', '.join(self.kinopoisk.countries)}, {', '.join(self.tc.imdb.production_companies)}"""
         except AttributeError:
-            return f"""{', '.join(self.tc.kinopoisk.countries)}"""
+            return f"""{', '.join(self.kinopoisk.countries)}"""
 
-    def add_data_form(self):
+    def _add_data_form(self):
         d = self._select_video_quality('AVC')
         frm = ('<select class="form-select" data-name="video_quality" required>'
                '<option value="">Выберите качество видео</option>')

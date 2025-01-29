@@ -323,7 +323,9 @@
         }
 
         async load_kinopoisk() {
-            // pywebview.api.call('load_kinopoisk')
+            if(document.getElementById('input_file').value === ''){
+                return
+            }
             let id = document.getElementById('kinopoisk_id').value
             let regexp = /^\d{2,9}$/
             if (regexp.test(id)) {
