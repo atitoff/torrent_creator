@@ -194,9 +194,10 @@ class MIAudio:
     bit_rate: int = 0
     bit_rate_str: str = ''
     channel_s: int = 0
-    channel_str: str = ''
-    title_translate_type: str = ''
+    title: str = ''
     title_description: str = ''
+    title_translate_type: str = ''
+
 
 
 @dataclass
@@ -207,7 +208,6 @@ class MI:
     video_duration: float = 0
     video_duration_str: str = ''
     video_bit_rate: int = 0
-    video_bit_rate_str: str = ''
     video_frame_rate: str = ''
     text_format: str = ''
     interlaced: bool = False
@@ -250,38 +250,6 @@ class MI:
         self.video_frame_rate = vd['frame_rate']
         self.video_bit_rate_str = self.human_bitrate(self.video_bit_rate)
 
-    def _parse_audio(self, track):
-        track = track.to_data()
-        ma = MIAudio()
-        n_track = ''
-        try:
-            n_track = track['track_id']
-            ma.language = track['language']
-            ma.format = self._audio_codec(track['format'])
-            ma.bit_rate = track['bit_rate']
-            ma.bit_rate_str = self.human_bitrate(ma.bit_rate)
-            ma.channel_s = track['channel_s']
-            ma.channel_str = f'{track['channel_s']} ch'
-            ma.language_str = Lang.get_language(ma.language)
-            # todo error handler
-            ma.title_translate_type, ma.title_description = self._audio_description(track['title'])
-            self.audio.append(ma)
-        except KeyError as e:
-            print(f'Запись о аудиотреке {n_track} не добавлена, не указан:', e)
-
-    def _parse_text(self, track):
-        track = track.to_data()
-        text = MIText()
-        n_track = ''
-        try:
-            n_track = track['track_id']
-            text.language = track['language']
-            text.language_str = Lang.get_language(text.language)
-            # TODO error handler
-            self.text.append(text)
-        except KeyError as e:
-            print(f'Запись о субтитрах {n_track} не добавлена, не указан:', e)
-
     @staticmethod
     def _audio_description(title: str):
         find = re.compile(r'^.{2,3}\s(.{1,}$)')
@@ -301,6 +269,42 @@ class MI:
             return 'ДБ', suffix
         return '', ''
 
+    def _parse_audio(self, track):
+        track = track.to_data()
+        ma = MIAudio()
+        n_track = ''
+        try:
+            n_track = track['track_id']
+            ma.language = track['language']
+            ma.format = self._audio_codec(track['format'])
+            ma.bit_rate = track['bit_rate']
+            ma.bit_rate_str = self.human_bitrate(ma.bit_rate)
+            ma.channel_s = track['channel_s']
+            ma.language_str = Lang.get_language(ma.language)
+            try:
+                ma.title = track['title']
+                ma.title_translate_type, ma.title_description = self._audio_description(track['title'])
+            except KeyError:
+                pass
+            self.audio.append(ma)
+        except KeyError as e:
+            print(f'Запись о аудиотреке {n_track} не добавлена, не указан:', e)
+
+    def _parse_text(self, track):
+        track = track.to_data()
+        text = MIText()
+        n_track = ''
+        try:
+            n_track = track['track_id']
+            text.language = track['language']
+            text.language_str = Lang.get_language(text.language)
+            # TODO error handler
+            self.text.append(text)
+        except KeyError as e:
+            print(f'Запись о субтитрах {n_track} не добавлена, не указан:', e)
+
+
+
     @staticmethod
     def _audio_codec(codec: str) -> str:
         codecs = {'AC-3': 'AC3'}
@@ -311,37 +315,25 @@ class MI:
 
     @staticmethod
     def human_bitrate(s: int) -> str:
-        units = ['б/с', 'кб/с', 'Мб/с', 'Гб/с', 'Тб/с']
-        for unit in units:
-            if s < 1000:
-                if int(s) == s:
-                    s = int(s)
-                    return f"{s} {unit}"
-                else:
-                    return f"{s:.1f} {unit}"
-            s /= 1000
+        if s == 0:
+            return "0 б/с"
+        size_name = ['б/с', 'кб/с', 'Мб/с', 'Гб/с', 'Тб/с']
+        i = int(math.floor(math.log(s, 1024)))
+        p = math.pow(1000, i)
+        s = round(s / p, 2)
+        return "%s %s" % (s, size_name[i])
 
     @staticmethod
-    def human_size(s: int) -> str:
-        units = ['Б', 'кБ', 'МБ', 'ГБ', 'ТБ']
-        for unit in units:
-            if s < 1000:
-                if int(s) == s:
-                    s = int(s)
-                    return f"{s} {unit}"
-                else:
-                    return f"{s:.1f} {unit}"
-            s /= 1024
+    def human_size(size_bytes: int) -> str:
+        if size_bytes == 0:
+            return "0 B"
+        size_name = ("Б", "кБ", "МБ", "ГБ", "ТБ", "ПБ")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return "%s %s" % (s, size_name[i])
 
-    def translate_str(self) -> str:
-        ret = []
-        for item in self.audio:
-            item: MIAudio
-            descr = item.title_description.strip()
-            if descr == '':
-                continue
-            ret.append(f'{item.title_translate_type} {descr}')
-        return ', '.join(ret)
+
 
 
 @dataclass
@@ -619,7 +611,7 @@ class TorrentCreator:
         self.ini_s.save(ret)
 
     async def _load_kinopoisk(self, d):
-        cache_path = os.path.join(self.s.path_add, 'kp_cache')
+        cache_path = os.path.join(self.s.path_web, 'temp' , 'kp_cache')
         self.kinopoisk = KinoPoisk(self.ini_s.kinopoisk_key, cache_path)
         try:
             self.kinopoisk.set_id(d)
@@ -700,7 +692,7 @@ class Kinozal:
         d.append(f"[b]Аудио:[/b] {self._audio_result_str()}")
         d.append(f"[b]Размер:[/b] {self.mi.human_size(self.mi.file_size)}")
         d.append(f"[b]Продолжительность:[/b] {self.mi.video_duration_str}")
-        d.append(f"[b]Перевод:[/b] {self.mi.translate_str()}")
+        d.append(f"[b]Перевод:[/b] {self._translate_str()}")
         print(d)
         ret.update({'tech_data': urllib.parse.quote('\r'.join(d))})
 
@@ -779,16 +771,32 @@ class Kinozal:
         return ''
 
     def _video_result_str(self):
+        bitrate = float(self.mi.video_frame_rate)
+        bitrate_int = math.ceil(bitrate)
+        if bitrate == bitrate_int:
+            bitrate_str = f'{bitrate_int}'
+        else:
+            bitrate_str = f'{bitrate}'
         return (
             f'{self._video_codec()}, {self.mi.video_bit_rate_str}, {self.mi.video_width}x{self.mi.video_height}, '
-            f'{self.mi.video_frame_rate} к/с')
+            f'{bitrate_str} к/с')
 
     def _audio_result_str(self):
         items = []
+        print('mi.language', self.mi.language)
         for idx, audio in enumerate(self.mi.audio):
             audio: MIAudio
-            items.append(f'{audio.language_str.lower()} ({audio.format}, {audio.channel_str}, {audio.bit_rate_str})')
+            items.append(f'{audio.language_str.lower()} ({audio.format}, {audio.channel_s} ch , {audio.bit_rate_str})')
         return ', '.join(items)
+
+    def _translate_str(self) -> str:
+        ret = []
+        for item in self.mi.audio:
+            item: MIAudio
+            if item.title_translate_type == '':
+                continue
+            ret.append(f'{item.title_translate_type} {item.title_description.strip()}')
+        return ', '.join(ret)
 
     def _header(self):
         audio_dict = {}
@@ -798,19 +806,19 @@ class Kinozal:
                 audio_dict[audio.title_translate_type] += 1
             except KeyError:
                 audio_dict[audio.title_translate_type] = 1
+
         audio_ret = []
         for key, value in audio_dict.items():
             if key != '' and value > 1:
                 audio_ret.append(f'{value} x {key}')
-            elif key != '' and value == 0:
-                audio_ret.append(f'{value} x {key}')
+            elif key != '' and value == 1:
+                audio_ret.append(f'{key}')
 
         sub = ''
         if len(self.mi.text) == 1:
             sub = ' / СТ'
         elif len(self.mi.text) > 1:
             sub = f' / {len(self.mi.text)} x СТ'
-
 
         return (f'{self.kinopoisk.nameRu} / {self.kinopoisk.nameOriginal} / {self.kinopoisk.year} / '
                 f'{', '.join(audio_ret) + sub}')

@@ -123,3 +123,28 @@ class JsAsync:
         del cls.event_dict[idc]
         return ret_val
 
+
+class BsDialog:
+    def __init__(self):
+        pass
+
+
+class BsDialogOk(BsDialog):
+    def __init__(self, window: webview.Window):
+        super().__init__()
+
+class BsDialogSplash(BsDialog):
+    def __init__(self, window: webview.Window):
+        self.window = window
+        super().__init__()
+
+    async def run(self):
+        ret = await JsAsync.call(
+            ("""new BsDialogs().ok('<i class="bi bi-exclamation-triangle"></i>',"""
+             " 'Количество выбранных скриншотов должно быть не менее """
+             f""),
+            self.window)
+        print(ret)
+
+    def call(self, d):
+         pass
