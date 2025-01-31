@@ -143,6 +143,19 @@
         </div>
         <div class="tab-pane fade" id="output-tab-pane" role="tabpanel" aria-labelledby="output-tab" tabindex="0">
             <div class="row p-1">
+                <div class="col-5">Название</div>
+                <div class="col-3">
+                    <button class="btn-outline-secondary btn btn-sm"
+                            onclick="app.copy_to_clipboard(document.getElementById('header'))">
+                        <i class="bi-copy"></i> Копировать
+                    </button>
+                </div>
+            </div>
+            <div class="ps-1 pe-1">
+                <textarea readonly id="header" class="form-control text-body-secondary"
+                          style="resize: none; font-size: 75%;" rows="1"></textarea>
+            </div>
+            <div class="row p-1">
                 <div class="col-5">Скриншоты</div>
                 <div class="col-3">
                     <button class="btn-outline-secondary btn btn-sm"

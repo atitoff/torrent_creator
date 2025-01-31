@@ -6,10 +6,9 @@ import os.path
 import pickle
 import re
 import shutil
-from dataclasses import dataclass
-from msilib import add_data
-from uuid import uuid4
 import urllib.parse
+from dataclasses import dataclass
+from uuid import uuid4
 
 import psutil
 import requests
@@ -106,7 +105,8 @@ class KinoPoisk:
                     headers={"Content-Type": "application/json", 'X-API-KEY': self._key},
                 )
             except Exception as err:
-                pass
+                print(err)
+                return None
             if x.status_code != 200:
                 pass
             else:
@@ -209,9 +209,6 @@ class MI:
     video_bit_rate: int = 0
     video_bit_rate_str: str = ''
     video_frame_rate: str = ''
-    audio_result_str: str = ''
-    video_result_str: str = ''
-    audio_header_str: str = ''
     text_format: str = ''
     interlaced: bool = False
     language: str = ''
@@ -236,13 +233,6 @@ class MI:
                 self._parse_audio(track)
             if track.track_type == "Text":
                 self._parse_text(track)
-        # create audio result string
-        items = []
-        for idx, audio in enumerate(self.audio):
-            audio: MIAudio
-            items.append(f'{audio.language_str.lower()} ({audio.format}, {audio.channel_str}, {audio.bit_rate_str})')
-        self.audio_result_str = ', '.join(items)
-        self._audio_header()
 
     def _parse_video(self, track):
         vd = track.to_data()
@@ -259,9 +249,6 @@ class MI:
         self.video_bit_rate = vd['bit_rate']
         self.video_frame_rate = vd['frame_rate']
         self.video_bit_rate_str = self.human_bitrate(self.video_bit_rate)
-        self.video_result_str = (
-            f'{self.video_format}, {self.video_bit_rate_str}, {self.video_width}x{self.video_height}, '
-            f'{self.video_frame_rate} к/с')
 
     def _parse_audio(self, track):
         track = track.to_data()
@@ -313,29 +300,6 @@ class MI:
         if title_m.startswith(("dub", "дб")):
             return 'ДБ', suffix
         return '', ''
-
-    def _audio_header(self):
-        out_dict = {}
-        for audio in self.audio:
-            audio: MIAudio
-            try:
-                out_dict[audio.title_translate_type] += 1
-            except KeyError:
-                out_dict[audio.title_translate_type] = 1
-        ret = []
-        for key, value in out_dict.items():
-            if key != '' and value > 1:
-                ret.append(f'{value} x {key}')
-            elif key != '' and value == 0:
-                ret.append(f'{value} x {key}')
-        sub = ''
-        if len(self.text) == 1:
-            sub = ', СТ'
-        elif len(self.text) > 1:
-            sub = f', {len(self.text)} x СТ'
-
-        self.audio_header_str = ', '.join(ret) + sub
-
 
     @staticmethod
     def _audio_codec(codec: str) -> str:
@@ -643,7 +607,7 @@ class TorrentCreator:
             form += f'{value}'
 
         form = f'<form id="settings">{form}</form>'
-        ret = await self._bs_form('Настройки', form, 'Сохранить', options={'size': 'xl', 'scrollable': True})
+        ret = await self.bs_form('Настройки', form, 'Сохранить', options={'size': 'xl', 'scrollable': True})
 
         try:
             for key, value in ret.items():
@@ -732,13 +696,15 @@ class Kinozal:
 
         d = list()
         d.append(f"[b]Качество:[/b] {add_dta['video_quality']}")
-        d.append(f"[b]Видео:[/b] {self.mi.video_result_str}")
-        d.append(f"[b]Аудио:[/b] {self.mi.audio_result_str}")
+        d.append(f"[b]Видео:[/b] {self._video_result_str()}")
+        d.append(f"[b]Аудио:[/b] {self._audio_result_str()}")
         d.append(f"[b]Размер:[/b] {self.mi.human_size(self.mi.file_size)}")
         d.append(f"[b]Продолжительность:[/b] {self.mi.video_duration_str}")
         d.append(f"[b]Перевод:[/b] {self.mi.translate_str()}")
         print(d)
         ret.update({'tech_data': urllib.parse.quote('\r'.join(d))})
+
+        ret.update({'header': urllib.parse.quote(self._header())})
 
         # заполняем поля вкладки Вывод
         self.tc.wv_app.window.evaluate_js(f"app.fill_description('{json.dumps(ret)}')")
@@ -759,7 +725,7 @@ class Kinozal:
         for item in d:
             frm += f'<option value="{item}">{item}</option>'
         frm += '</select>'
-        frm += self._select_language()
+        frm += self._select_language_dlg()
         return frm
 
     def _select_video_quality(self, codec):
@@ -803,12 +769,58 @@ class Kinozal:
 
         return video_quality[q]
 
-    def _select_language(self):
+    def _select_language_dlg(self):
         if self.tc.mi.language == '':
             frm = ('<select class="form-select mt-1" data-name="language" required>'
                    '<option value="">Выберите оригинальный язык фильма</option>')
             for ln, lang in Lang.get_language_common().items():
                 frm += f'<option value="{ln}">{lang}</option>'
             return frm + '</select>'
-        else:
-            return ''
+        return ''
+
+    def _video_result_str(self):
+        return (
+            f'{self._video_codec()}, {self.mi.video_bit_rate_str}, {self.mi.video_width}x{self.mi.video_height}, '
+            f'{self.mi.video_frame_rate} к/с')
+
+    def _audio_result_str(self):
+        items = []
+        for idx, audio in enumerate(self.mi.audio):
+            audio: MIAudio
+            items.append(f'{audio.language_str.lower()} ({audio.format}, {audio.channel_str}, {audio.bit_rate_str})')
+        return ', '.join(items)
+
+    def _header(self):
+        audio_dict = {}
+        for audio in self.mi.audio:
+            audio: MIAudio
+            try:
+                audio_dict[audio.title_translate_type] += 1
+            except KeyError:
+                audio_dict[audio.title_translate_type] = 1
+        audio_ret = []
+        for key, value in audio_dict.items():
+            if key != '' and value > 1:
+                audio_ret.append(f'{value} x {key}')
+            elif key != '' and value == 0:
+                audio_ret.append(f'{value} x {key}')
+
+        sub = ''
+        if len(self.mi.text) == 1:
+            sub = ' / СТ'
+        elif len(self.mi.text) > 1:
+            sub = f' / {len(self.mi.text)} x СТ'
+
+
+        return (f'{self.kinopoisk.nameRu} / {self.kinopoisk.nameOriginal} / {self.kinopoisk.year} / '
+                f'{', '.join(audio_ret) + sub}')
+
+    def _video_codec(self):
+        codecs = {
+            'AVC': 'MPEG-4 AVC',
+            'HEVC': 'MPEG-H HEVC'
+        }
+        try:
+            return codecs[self.mi.video_format]
+        except KeyError:
+            return self.mi.video_format

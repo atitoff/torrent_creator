@@ -43,3 +43,6 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 Type: files; Name: "{app}\*.*"
+
+[Registry]
+Root: HKCU; Subkey: Software\TorrentCreator; ValueType: string; ValueName: InstallPath; ValueData: {app}
