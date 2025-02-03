@@ -57,521 +57,539 @@
     </div>
 </div>
 <div class="ps-2 pe-2">
-    <ul class="nav nav-tabs hc1 mt-1" id="myTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="film_data-tab" data-bs-toggle="tab" data-bs-target="#film_data-tab-pane"
-                    type="button" role="tab" aria-controls="film_data-tab-pane" aria-selected="true">
-                Параметры
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="screenshots-tab" data-bs-toggle="tab" data-bs-target="#screenshots-tab-pane"
-                    type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">
-                Cкриншоты
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="output-tab" data-bs-toggle="tab" data-bs-target="#output-tab-pane"
-                    type="button" role="tab" aria-controls="output-tab-pane" aria-selected="false">Вывод
-            </button>
-        </li>
-    </ul>
-    <div class="tab-content" id="myTabContent">
-        <div class="tab-pane fade show active" id="film_data-tab-pane" role="tabpanel" aria-labelledby="film_data-tab"
-             tabindex="0">
-            <div class="mt-1 mb-1">Технические данные</div>
-            <table style="border: 0; width: 100%">
-                <tr>
-                    <td>Имя файла:</td>
-                    <td>
-                        <div class="input-group">
-                            <input id="input_file" type="text" class="form-control form-control-sm"
-                                   style="text-align:left;"
-                                   aria-label="Recipient's username" aria-describedby="button-addon2" readonly>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" id="button-addon2"
-                                    onclick="pywebview.api.call('open_mkv')">
-                                Открыть
+    <div class="ps-2 pe-2">
+        <ul class="nav nav-tabs hc1 mt-1" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="film_data-tab" data-bs-toggle="tab"
+                        data-bs-target="#film_data-tab-pane"
+                        type="button" role="tab" aria-controls="film_data-tab-pane" aria-selected="true">
+                    Параметры
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="screenshots-tab" data-bs-toggle="tab"
+                        data-bs-target="#screenshots-tab-pane"
+                        type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">
+                    Cкриншоты
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="output-tab" data-bs-toggle="tab" data-bs-target="#output-tab-pane"
+                        type="button" role="tab" aria-controls="output-tab-pane" aria-selected="false">
+                    <img class="me-1" alt="" width="24px" src="js/pic/kinozal_dark.svg"> Вывод
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="film_data-tab-pane" role="tabpanel"
+                 aria-labelledby="film_data-tab"
+                 tabindex="0">
+                <div class="mt-1 mb-1">Технические данные</div>
+                <table style="border: 0; width: 100%">
+                    <tr>
+                        <td>Имя файла:</td>
+                        <td>
+                            <div class="input-group">
+                                <input id="input_file" type="text" class="form-control form-control-sm"
+                                       style="text-align:left;"
+                                       aria-label="Recipient's username" aria-describedby="button-addon2" readonly>
+                                <button class="btn btn-outline-secondary btn-sm" type="button" id="button-addon2"
+                                        onclick="pywebview.api.call('open_mkv')">
+                                    Открыть
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Кинопоиск ID:</td>
+                        <td>
+                            <div class="input-group">
+                                <input id="kinopoisk_id" type="text" class="form-control form-control-sm" placeholder=""
+                                       aria-label="Recipient's username" aria-describedby="button-addon2">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <button class="btn btn-outline-secondary mt-1" onclick="app.load_kinopoisk()">
+                                Загрузить данные о фильме
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+
+            </div>
+            <div class="tab-pane fade" id="screenshots-tab-pane" role="tabpanel"
+                 aria-labelledby="screenshots-tab"
+                 tabindex="0">
+                <div class="container">
+                    <div id="screenshot_header" class="mb-1 hc1 d-flex justify-content-evenly">
+                        <div id="img_sel_cnt"></div>
+                        <div class="pt-1">
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    onclick="pywebview.api.call('create_screenshots')">
+                                Генерировать скриншоты
                             </button>
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Кинопоиск ID:</td>
-                    <td>
-                        <div class="input-group">
-                            <input id="kinopoisk_id" type="text" class="form-control form-control-sm" placeholder=""
-                                   aria-label="Recipient's username" aria-describedby="button-addon2">
+                        <div id="img_cnt"></div>
+                    </div>
+                    <div id="screenshots" class="row">
+                        <div id="screenshot_select" class="col-6 overflow-y-auto overflow-x-hidden">
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td>
-                        <button class="btn btn-outline-secondary mt-1" onclick="app.load_kinopoisk()">
-                            Загрузить данные о фильме
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                </tr>
-            </table>
-
-        </div>
-        <div class="tab-pane fade" id="screenshots-tab-pane" role="tabpanel"
-             aria-labelledby="screenshots-tab"
-             tabindex="0">
-            <div class="container">
-                <div id="screenshot_header" class="mb-1 hc1 d-flex justify-content-evenly">
-                    <div id="img_sel_cnt"></div>
-                    <div class="pt-1">
-                        <button class="btn btn-sm btn-outline-secondary"
-                                onclick="pywebview.api.call('create_screenshots')">
-                            Генерировать скриншоты
-                        </button>
-                    </div>
-                    <div id="img_cnt"></div>
-                </div>
-                <div id="screenshots" class="row">
-                    <div id="screenshot_select" class="col-6 overflow-y-auto overflow-x-hidden">
-                    </div>
-                    <div id="screenshot_all" class="col-6 overflow-y-auto overflow-x-hidden">
+                        <div id="screenshot_all" class="col-6 overflow-y-auto overflow-x-hidden">
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="tab-pane fade" id="output-tab-pane" role="tabpanel" aria-labelledby="output-tab" tabindex="0">
-            <div class="row p-1">
-                <div class="col-5">Название</div>
-                <div class="col-3">
-                    <button class="btn-outline-secondary btn btn-sm"
-                            onclick="app.copy_to_clipboard(document.getElementById('header'))">
-                        <i class="bi-copy"></i> Копировать
-                    </button>
+            <div class="tab-pane fade" id="output-tab-pane" role="tabpanel" aria-labelledby="output-tab" tabindex="0">
+                <div class="row p-1">
+                    <div class="col-5"><label for="header">Название</label></div>
                 </div>
-            </div>
-            <div class="ps-1 pe-1">
+                <div class="ps-1 pe-1">
                 <textarea readonly id="header" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="1"></textarea>
-            </div>
-            <div class="row p-1">
-                <div class="col-5">Скриншоты</div>
-                <div class="col-3">
-                    <button class="btn-outline-secondary btn btn-sm"
-                            onclick="app.copy_to_clipboard(document.getElementById('phpbb_screenshot'))">
-                        <i class="bi-copy"></i> Копировать
-                    </button>
                 </div>
-                <div class="col-4">
-                    <button class="btn-outline-secondary btn btn-sm" onclick="pywebview.api.call('upload_screenshots')">
-                        Загрузить скриншоты на хостинг
-                    </button>
+                <div class="row p-1">
+                    <div class="col-5"><label for="phpbb_screenshot">Скриншоты</label></div>
+                    <div class="col-3"></div>
+                    <div class="col-4">
+                        <button class="btn-outline-secondary btn btn-sm"
+                                onclick="pywebview.api.call('upload_screenshots')">
+                            Загрузить скриншоты на хостинг
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="ps-1 pe-1">
+                <div class="ps-1 pe-1">
                 <textarea readonly id="phpbb_screenshot" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="3"></textarea>
-            </div>
-            <div class="row p-1">
-                <div class="col-5">Предварительное описание</div>
-                <div class="col-3">
-                    <button class="btn-outline-secondary btn btn-sm"
-                            onclick="app.copy_to_clipboard(document.getElementById('preliminary_description'))">
-                        <i class="bi-copy"></i> Копировать
-                    </button>
                 </div>
-            </div>
-            <div class="ps-1 pe-1">
+                <div class="row p-1">
+                    <div class="col-5"><label for="preliminary_description">Предварительное описание</label></div>
+                    <div class="col-3"></div>
+                </div>
+                <div class="ps-1 pe-1">
                 <textarea readonly id="preliminary_description" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="3"></textarea>
-            </div>
-            <div class="row p-1">
-                <div class="col-5">Технические данные</div>
-                <div class="col-3">
-                    <button class="btn-outline-secondary btn btn-sm"
-                            onclick="app.copy_to_clipboard(document.getElementById('tech_data'))">
-                        <i class="bi-copy"></i> Копировать
-                    </button>
                 </div>
-            </div>
-            <div class="ps-1 pe-1">
+                <div class="row p-1">
+                    <div class="col-5"><label for="tech_data">Технические данные</label></div>
+                    <div class="col-3"></div>
+                </div>
+                <div class="ps-1 pe-1">
                 <textarea readonly id="tech_data" class="form-control text-body-secondary"
                           style="resize: none; font-size: 75%;" rows="3"></textarea>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
-<script src="js/bootstrap/bootstrap.bundle.js"></script>
-<script src="js/sortable.min.js"></script>
-<script src="js/bs_dialogs.js"></script>
-<script>
-    class App {
-        constructor(main_title_el) {
-            this.main_title_el = main_title_el
-            this.close_btn = main_title_el.getElementsByClassName("bi-x-lg")[0]
-            this.minimize_btn = main_title_el.getElementsByClassName("bi-dash-lg")[0]
-            this.maximize_btn = main_title_el.getElementsByClassName("bi-app")[0]
-            this.normal_btn = main_title_el.getElementsByClassName("bi-copy")[0]
-            this.normal_btn.style.visibility = 'hidden'
-            this.close_btn.onclick = this.close_app.bind(this)
-            this.minimize_btn.onclick = this.minimize.bind(this)
-            ///
-            this.screenshot_select = document.getElementById('screenshot_select')
-            this.screenshot_all = document.getElementById('screenshot_all')
-            new Sortable(
-                this.screenshot_select,
-                {
+    <script src="js/bootstrap/bootstrap.bundle.js"></script>
+    <script src="js/sortable.min.js"></script>
+    <script src="js/bs_dialogs.js"></script>
+    <script>
+
+
+
+
+
+
+        class CopyInput {
+            constructor(elements) {
+                this.elements = elements
+                this.bs = {}
+                for (const el of this.elements) {
+                    this.bs[el.id] = new bootstrap.Popover(el, {
+                        container: 'body', html: true, content: 'Скопировано в буфер', trigger: 'manual'
+                    })
+                    el.addEventListener("click", this._click.bind(this));
+                }
+            }
+
+
+            _click(e) {
+                let el = e.target
+
+                let p = this.bs[el.id]
+                p.show()
+                el.select()
+                navigator.clipboard.writeText(el.value)
+                el.setSelectionRange(0, 0)
+                setTimeout(() => this._hide(p), 500)
+            }
+
+
+            _hide(p) {
+                p.hide()
+            }
+
+        }
+
+
+        class App {
+            constructor(main_title_el) {
+                this.main_title_el = main_title_el
+                this.close_btn = main_title_el.getElementsByClassName("bi-x-lg")[0]
+                this.minimize_btn = main_title_el.getElementsByClassName("bi-dash-lg")[0]
+                this.maximize_btn = main_title_el.getElementsByClassName("bi-app")[0]
+                this.normal_btn = main_title_el.getElementsByClassName("bi-copy")[0]
+                this.normal_btn.style.visibility = 'hidden'
+                this.close_btn.onclick = this.close_app.bind(this)
+                this.minimize_btn.onclick = this.minimize.bind(this)
+                document.addEventListener("load", (e) => {
+                    pywebview.api.call('on_dom_content_loaded')
+                });
+                ///
+                this.screenshot_select = document.getElementById('screenshot_select')
+                this.screenshot_all = document.getElementById('screenshot_all')
+                new Sortable(this.screenshot_select, {
                     group: 'shared',
                     animation: 150,
                     onAdd: this.add_remove_screenshots,
                     onRemove: this.add_remove_screenshots
+                })
+                new Sortable(this.screenshot_all, {group: 'shared', animation: 150})
+            }
+
+            getAbsoluteHeight(el) {
+                // Get the DOM Node if you pass in a string
+                el = (typeof el === 'string') ? document.querySelector(el) : el;
+
+                let styles = window.getComputedStyle(el);
+                let margin = parseFloat(styles['marginTop']) +
+                    parseFloat(styles['marginBottom']);
+
+                return Math.ceil(el.offsetHeight + margin);
+            }
+
+            calculate_height() {
+                let h = 0
+                const _this = this
+                for (const el of document.getElementsByClassName("hc1")) {
+                    h += this.getAbsoluteHeight(el)
                 }
-            )
-            new Sortable(this.screenshot_all, {group: 'shared', animation: 150})
-        }
+                let hpx = `${window.innerHeight - h - 6}px`
 
-        getAbsoluteHeight(el) {
-            // Get the DOM Node if you pass in a string
-            el = (typeof el === 'string') ? document.querySelector(el) : el;
-
-            let styles = window.getComputedStyle(el);
-            let margin = parseFloat(styles['marginTop']) +
-                parseFloat(styles['marginBottom']);
-
-            return Math.ceil(el.offsetHeight + margin);
-        }
-
-        calculate_height() {
-            let h = 0
-            const _this = this
-            for (const el of document.getElementsByClassName("hc1")) {
-                h += this.getAbsoluteHeight(el)
+                document.getElementById('screenshot_select').style.height = hpx
+                document.getElementById('screenshot_all').style.height = hpx
             }
-            let hpx = `${window.innerHeight - h - 6}px`
 
-            document.getElementById('screenshot_select').style.height = hpx
-            document.getElementById('screenshot_all').style.height = hpx
-        }
-
-        close_app() {
-            pywebview.api.close_app()
-        }
-
-        minimize() {
-            pywebview.api.minimize()
-        }
-
-        create_screenshots(scr) {
-            this.calculate_height()
-            let scr_array = JSON.parse(scr)
-            this.screenshot_all.innerHTML = ''
-            this.screenshot_all.innerHTML = ''
-            for (const element of scr_array) {
-                let div = document.createElement('div')
-                div.setAttribute('filename', element)
-                let img = document.createElement('img')
-                img.src = `work/screenshots/${element}?${Math.random().toString(36).substr(2)}`
-                img.className = 'mt-1'
-                img.style.cssText = 'object-fit: contain; width: 320px'
-                img.setAttribute('filename', element)
-                img.addEventListener("dblclick", this.img_dblclick);
-                div.append(img)
-                this.screenshot_all.append(div)
+            close_app() {
+                pywebview.api.close_app()
             }
-        }
 
-        img_dblclick(e) {
-            pywebview.api.call('show_img', e.target.getAttribute('filename'))
-        }
-
-        add_remove_screenshots() {
-            let qty = document.getElementById("screenshot_select").childElementCount
-            if (qty > 0) {
-                document.getElementById("img_sel_cnt").innerHTML = `Выбрано: ${qty}`
-            } else {
-                document.getElementById("img_sel_cnt").innerHTML = ''
+            minimize() {
+                pywebview.api.minimize()
             }
-        }
 
-        get_info_screenshots() {
-            let sel_div = document.getElementById('screenshot_select')
-            let elements = sel_div.getElementsByTagName('div');
-            let ret_val = []
-            for (let i = 0; i < elements.length; i++) {
-                ret_val.push(elements[i].getAttribute('filename'))
+            create_screenshots(scr) {
+                this.calculate_height()
+                let scr_array = JSON.parse(scr)
+                this.screenshot_all.innerHTML = ''
+                this.screenshot_all.innerHTML = ''
+                for (const element of scr_array) {
+                    let div = document.createElement('div')
+                    div.setAttribute('filename', element)
+                    let img = document.createElement('img')
+                    img.src = `work/screenshots/${element}?${Math.random().toString(36).substr(2)}`
+                    img.className = 'mt-1'
+                    img.style.cssText = 'object-fit: contain; width: 320px'
+                    img.setAttribute('filename', element)
+                    img.addEventListener("dblclick", this.img_dblclick);
+                    div.append(img)
+                    this.screenshot_all.append(div)
+                }
             }
-            return ret_val
-        }
 
-        clean_screenshots() {
-            document.getElementById('img_cnt').innerHTML = ''
-            document.getElementById('img_sel_cnt').innerHTML = ''
-            document.getElementById('screenshot_all').innerHTML = ''
-            document.getElementById('screenshot_select').innerHTML = ''
-        }
+            img_dblclick(e) {
+                pywebview.api.call('show_img', e.target.getAttribute('filename'))
+            }
 
-        set_phpbb_screenshot(d) {
-            let i = 0
-            let value = ''
-            let data = JSON.parse(d)
-            console.log(data)
-            data.forEach((p) => {
-                i += 1
-                if (i % 2 === 0) {
-                    value += p + '\r'
+            add_remove_screenshots() {
+                let qty = document.getElementById("screenshot_select").childElementCount
+                if (qty > 0) {
+                    document.getElementById("img_sel_cnt").innerHTML = `Выбрано: ${qty}`
                 } else {
-                    value += p + ' '
+                    document.getElementById("img_sel_cnt").innerHTML = ''
                 }
-            })
-
-            document.getElementById('phpbb_screenshot').value = value
-        }
-
-        copy_to_clipboard(el) {
-            el.select();
-            navigator.clipboard.writeText(el.value);
-        }
-
-        async load_kinopoisk() {
-            if(document.getElementById('input_file').value === ''){
-                return
-            }
-            let id = document.getElementById('kinopoisk_id').value
-            let regexp = /^\d{2,9}$/
-            if (regexp.test(id)) {
-                pywebview.api.call('load_kinopoisk', id)
-            } else {
-                await new BsDialogs().ok('Ошибка', 'Введите Кинопоиск ID в правильном формате')
             }
 
-        }
+            get_info_screenshots() {
+                let sel_div = document.getElementById('screenshot_select')
+                let elements = sel_div.getElementsByTagName('div');
+                let ret_val = []
+                for (let i = 0; i < elements.length; i++) {
+                    ret_val.push(elements[i].getAttribute('filename'))
+                }
+                return ret_val
+            }
 
-        lang_code() {
-            return {
-                'en': 'Английский',
-                'ru': 'Русский',
-                'fr': 'Французский',
-                'it': 'Итальянский',
-                'de': 'Немецкий',
-                'ko': 'Корейский',
-                'ja': 'Японский',
-                'zh': 'Китайский',
-                'es': 'Испанский',
-                'pt': 'Португальский',
-                'pl': 'Польский',
-                'ab': 'Абхазский',
-                'ae': 'Авестийский',
-                'af': 'Африкаанс',
-                'ak': 'Акан',
-                'aa': 'Афарский',
-                'am': 'Амхарский',
-                'ar': 'Арабский',
-                'as': 'Ассамский',
-                'av': 'Аварский',
-                'ay': 'Аймара',
-                'az': 'Азербайджанский',
-                'ba': 'Башкирский',
-                'be': 'Белорусский',
-                'bg': 'Болгарский',
-                'bi': 'Бислама',
-                'bm': 'Бамбара',
-                'bn': 'Бенгальский',
-                'bo': 'Тибетский',
-                'br': 'Бретонский',
-                'bs': 'Боснийский',
-                'ca': 'Каталанский',
-                'ce': 'Чеченский',
-                'ch': 'Чаморро',
-                'co': 'Корсиканский',
-                'cs': 'Чешский',
-                'cu': 'Церковнославянский (Старославянский)',
-                'cv': 'Чувашский',
-                'cy': 'Валлийский',
-                'da': 'Датский',
-                'dv': 'Дивехи (Мальдивский)',
-                'dz': 'Дзонг-кэ',
-                'ee': 'Эве',
-                'el': 'Греческий (новогреческий)',
-                'eo': 'Эсперанто',
-                'et': 'Эстонский',
-                'eu': 'Баскский',
-                'fa': 'Персидский',
-                'ff': 'Фулах',
-                'fi': 'Финский',
-                'fj': 'Фиджи',
-                'fl': 'Филиппинский',
-                'fo': 'Фарерский',
-                'fy': 'Фризский',
-                'ga': 'Ирландский',
-                'gd': 'Гэльский',
-                'gl': 'Галисийский',
-                'gn': 'Гуарани',
-                'gu': 'Гуджарати',
-                'gv': 'Мэнский',
-                'ha': 'Хауса',
-                'he': 'Иврит',
-                'hi': 'Хинди',
-                'ho': 'Хиримоту',
-                'hr': 'Хорватский',
-                'hu': 'Венгерский',
-                'hy': 'Армянский',
-                'hz': 'Гереро',
-                'ia': 'Интерлингва',
-                'id': 'Индонезийский',
-                'ie': 'Интерлингве',
-                'ig': 'Игбо',
-                'ik': 'Инупиак',
-                'is': 'Исландский',
-                'iu': 'Инуктитут',
-                'jv': 'Яванский',
-                'ka': 'Грузинский',
-                'kg': 'Конго',
-                'ki': 'Кикуйю',
-                'kj': 'Киньяма',
-                'kk': 'Казахский',
-                'kl': 'Гренландский',
-                'km': 'Кхмерский',
-                'kn': 'Каннада',
-                'kr': 'Канури',
-                'ks': 'Кашмири',
-                'ku': 'Курдский',
-                'kv': 'Коми',
-                'kw': 'Корнский',
-                'ky': 'Кыргызский',
-                'la': 'Латинский',
-                'lb': 'Люксембургский',
-                'lg': 'Ганда',
-                'ln': 'Лингала',
-                'lo': 'Лаосский',
-                'lt': 'Литовский',
-                'lu': 'Луба-катанга',
-                'lv': 'Латышский',
-                'me': 'Мерянский',
-                'mg': 'Малагасийский',
-                'mh': 'Маршалльский',
-                'mi': 'Маори',
-                'mk': 'Македонский',
-                'ml': 'Малаялам',
-                'mn': 'Монгольский',
-                'mo': 'Молдавский',
-                'mr': 'Маратхи',
-                'ms': 'Малайский',
-                'mt': 'Мальтийский',
-                'my': 'Бирманский',
-                'na': 'Науру',
-                'nd': 'Ндебеле северный',
-                'ne': 'Непальский',
-                'ng': 'Ндунга',
-                'nl': 'Нидерландский',
-                'nn': 'Нюнорск',
-                'no': 'Норвежский',
-                'nr': 'Ндебеле южный',
-                'nv': 'Навахо',
-                'ny': 'Ньянджа',
-                'oc': 'Окситанский',
-                'oj': 'Оджибве',
-                'om': 'Оромо',
-                'or': 'Ория',
-                'os': 'Осетинский',
-                'pa': 'Пенджабский',
-                'pi': 'Пали',
-                'ps': 'Пушту',
-                'qu': 'Кечуа',
-                'rm': 'Ретороманский',
-                'rn': 'Рунди',
-                'ro': 'Румынский',
-                'rw': 'Руанда',
-                'sa': 'Санскрит',
-                'sc': 'Сардинский',
-                'sd': 'Синдхи',
-                'sg': 'Санго',
-                'si': 'Сингальский',
-                'sk': 'Словацкий',
-                'sl': 'Словенский',
-                'sm': 'Самоанский',
-                'sn': 'Шона',
-                'so': 'Сомали',
-                'sq': 'Албанский',
-                'sr': 'Сербский',
-                'ss': 'Свази',
-                'st': 'Сото южный',
-                'su': 'Сунданский',
-                'sv': 'Шведский',
-                'sw': 'Суахили',
-                'ta': 'Тамильский',
-                'te': 'Телугу',
-                'tg': 'Таджикский',
-                'th': 'Тайский',
-                'ti': 'Тигринья',
-                'tk': 'Туркменский',
-                'tl': 'Тагальский',
-                'tn': 'Тсвана',
-                'to': 'Тонганский',
-                'tr': 'Турецкий',
-                'ts': 'Тсонга',
-                'tt': 'Татарский',
-                'tw': 'Тви',
-                'ty': 'Таитянский',
-                'ug': 'Уйгурский',
-                'uk': 'Украинский',
-                'ur': 'Урду',
-                'uz': 'Узбекский',
-                've': 'Венда',
-                'vi': 'Вьетнамский',
-                'vo': 'Волапюк',
-                'wo': 'Волоф',
-                'xh': 'Коса',
-                'yi': 'Идиш',
-                'yo': 'Йоруба',
-                'za': 'Чжуанский',
-                'zu': 'Зулу'
+            clean_screenshots() {
+                document.getElementById('img_cnt').innerHTML = ''
+                document.getElementById('img_sel_cnt').innerHTML = ''
+                document.getElementById('screenshot_all').innerHTML = ''
+                document.getElementById('screenshot_select').innerHTML = ''
+            }
+
+            set_phpbb_screenshot(d) {
+                let i = 0
+                let value = ''
+                let data = JSON.parse(d)
+                console.log(data)
+                data.forEach((p) => {
+                    i += 1
+                    if (i % 2 === 0) {
+                        value += p + '\r'
+                    } else {
+                        value += p + ' '
+                    }
+                })
+
+                document.getElementById('phpbb_screenshot').value = value
+            }
+
+            async load_kinopoisk() {
+                if (document.getElementById('input_file').value === '') {
+                    return
+                }
+                let id = document.getElementById('kinopoisk_id').value
+                let regexp = /^\d{2,9}$/
+                if (regexp.test(id)) {
+                    pywebview.api.call('load_kinopoisk', id)
+                } else {
+                    await new BsDialogs().ok('Ошибка', 'Введите Кинопоиск ID в правильном формате')
+                }
+
+            }
+
+            lang_code() {
+                return {
+                    'en': 'Английский',
+                    'ru': 'Русский',
+                    'fr': 'Французский',
+                    'it': 'Итальянский',
+                    'de': 'Немецкий',
+                    'ko': 'Корейский',
+                    'ja': 'Японский',
+                    'zh': 'Китайский',
+                    'es': 'Испанский',
+                    'pt': 'Португальский',
+                    'pl': 'Польский',
+                    'ab': 'Абхазский',
+                    'ae': 'Авестийский',
+                    'af': 'Африкаанс',
+                    'ak': 'Акан',
+                    'aa': 'Афарский',
+                    'am': 'Амхарский',
+                    'ar': 'Арабский',
+                    'as': 'Ассамский',
+                    'av': 'Аварский',
+                    'ay': 'Аймара',
+                    'az': 'Азербайджанский',
+                    'ba': 'Башкирский',
+                    'be': 'Белорусский',
+                    'bg': 'Болгарский',
+                    'bi': 'Бислама',
+                    'bm': 'Бамбара',
+                    'bn': 'Бенгальский',
+                    'bo': 'Тибетский',
+                    'br': 'Бретонский',
+                    'bs': 'Боснийский',
+                    'ca': 'Каталанский',
+                    'ce': 'Чеченский',
+                    'ch': 'Чаморро',
+                    'co': 'Корсиканский',
+                    'cs': 'Чешский',
+                    'cu': 'Церковнославянский (Старославянский)',
+                    'cv': 'Чувашский',
+                    'cy': 'Валлийский',
+                    'da': 'Датский',
+                    'dv': 'Дивехи (Мальдивский)',
+                    'dz': 'Дзонг-кэ',
+                    'ee': 'Эве',
+                    'el': 'Греческий (новогреческий)',
+                    'eo': 'Эсперанто',
+                    'et': 'Эстонский',
+                    'eu': 'Баскский',
+                    'fa': 'Персидский',
+                    'ff': 'Фулах',
+                    'fi': 'Финский',
+                    'fj': 'Фиджи',
+                    'fl': 'Филиппинский',
+                    'fo': 'Фарерский',
+                    'fy': 'Фризский',
+                    'ga': 'Ирландский',
+                    'gd': 'Гэльский',
+                    'gl': 'Галисийский',
+                    'gn': 'Гуарани',
+                    'gu': 'Гуджарати',
+                    'gv': 'Мэнский',
+                    'ha': 'Хауса',
+                    'he': 'Иврит',
+                    'hi': 'Хинди',
+                    'ho': 'Хиримоту',
+                    'hr': 'Хорватский',
+                    'hu': 'Венгерский',
+                    'hy': 'Армянский',
+                    'hz': 'Гереро',
+                    'ia': 'Интерлингва',
+                    'id': 'Индонезийский',
+                    'ie': 'Интерлингве',
+                    'ig': 'Игбо',
+                    'ik': 'Инупиак',
+                    'is': 'Исландский',
+                    'iu': 'Инуктитут',
+                    'jv': 'Яванский',
+                    'ka': 'Грузинский',
+                    'kg': 'Конго',
+                    'ki': 'Кикуйю',
+                    'kj': 'Киньяма',
+                    'kk': 'Казахский',
+                    'kl': 'Гренландский',
+                    'km': 'Кхмерский',
+                    'kn': 'Каннада',
+                    'kr': 'Канури',
+                    'ks': 'Кашмири',
+                    'ku': 'Курдский',
+                    'kv': 'Коми',
+                    'kw': 'Корнский',
+                    'ky': 'Кыргызский',
+                    'la': 'Латинский',
+                    'lb': 'Люксембургский',
+                    'lg': 'Ганда',
+                    'ln': 'Лингала',
+                    'lo': 'Лаосский',
+                    'lt': 'Литовский',
+                    'lu': 'Луба-катанга',
+                    'lv': 'Латышский',
+                    'me': 'Мерянский',
+                    'mg': 'Малагасийский',
+                    'mh': 'Маршалльский',
+                    'mi': 'Маори',
+                    'mk': 'Македонский',
+                    'ml': 'Малаялам',
+                    'mn': 'Монгольский',
+                    'mo': 'Молдавский',
+                    'mr': 'Маратхи',
+                    'ms': 'Малайский',
+                    'mt': 'Мальтийский',
+                    'my': 'Бирманский',
+                    'na': 'Науру',
+                    'nd': 'Ндебеле северный',
+                    'ne': 'Непальский',
+                    'ng': 'Ндунга',
+                    'nl': 'Нидерландский',
+                    'nn': 'Нюнорск',
+                    'no': 'Норвежский',
+                    'nr': 'Ндебеле южный',
+                    'nv': 'Навахо',
+                    'ny': 'Ньянджа',
+                    'oc': 'Окситанский',
+                    'oj': 'Оджибве',
+                    'om': 'Оромо',
+                    'or': 'Ория',
+                    'os': 'Осетинский',
+                    'pa': 'Пенджабский',
+                    'pi': 'Пали',
+                    'ps': 'Пушту',
+                    'qu': 'Кечуа',
+                    'rm': 'Ретороманский',
+                    'rn': 'Рунди',
+                    'ro': 'Румынский',
+                    'rw': 'Руанда',
+                    'sa': 'Санскрит',
+                    'sc': 'Сардинский',
+                    'sd': 'Синдхи',
+                    'sg': 'Санго',
+                    'si': 'Сингальский',
+                    'sk': 'Словацкий',
+                    'sl': 'Словенский',
+                    'sm': 'Самоанский',
+                    'sn': 'Шона',
+                    'so': 'Сомали',
+                    'sq': 'Албанский',
+                    'sr': 'Сербский',
+                    'ss': 'Свази',
+                    'st': 'Сото южный',
+                    'su': 'Сунданский',
+                    'sv': 'Шведский',
+                    'sw': 'Суахили',
+                    'ta': 'Тамильский',
+                    'te': 'Телугу',
+                    'tg': 'Таджикский',
+                    'th': 'Тайский',
+                    'ti': 'Тигринья',
+                    'tk': 'Туркменский',
+                    'tl': 'Тагальский',
+                    'tn': 'Тсвана',
+                    'to': 'Тонганский',
+                    'tr': 'Турецкий',
+                    'ts': 'Тсонга',
+                    'tt': 'Татарский',
+                    'tw': 'Тви',
+                    'ty': 'Таитянский',
+                    'ug': 'Уйгурский',
+                    'uk': 'Украинский',
+                    'ur': 'Урду',
+                    'uz': 'Узбекский',
+                    've': 'Венда',
+                    'vi': 'Вьетнамский',
+                    'vo': 'Волапюк',
+                    'wo': 'Волоф',
+                    'xh': 'Коса',
+                    'yi': 'Идиш',
+                    'yo': 'Йоруба',
+                    'za': 'Чжуанский',
+                    'zu': 'Зулу'
+                }
+            }
+
+            async select_lang_code() {
+                let frm = '<div class="mb-1">Выберите оригинальный язык фильма:</div><form><select size="10" data-name="ln" class="form-select form-select-sm">'
+                for (const [key, value] of Object.entries(this.lang_code())) {
+                    frm += `<option value="${key}">${value}</option>`
+                }
+                frm += '</select></form>'
+                let dlg = new BsDialogs()
+                dlg.form('Язык', 'Ок', frm)
+                return await dlg.onsubmit()
+            }
+
+            async bs_form(d) {
+                d = JSON.parse(d)
+                console.log(d)
+                let dlg = new BsDialogs(d['options'])
+                dlg.form(decodeURIComponent(d['frm_header']), decodeURIComponent(d['btn']), decodeURIComponent(d['frm']))
+                return await dlg.onsubmit()
+            }
+
+            fill_description(d) {
+                d = JSON.parse(d)
+                for (const [key, value] of Object.entries(d)) {
+                    document.getElementById(key).innerHTML = decodeURIComponent(value)
+                }
             }
         }
 
-        async select_lang_code() {
-            let frm = '<div class="mb-1">Выберите оригинальный язык фильма:</div><form><select size="10" data-name="ln" class="form-select form-select-sm">'
-            for (const [key, value] of Object.entries(this.lang_code())) {
-                frm += `<option value="${key}">${value}</option>`
+
+        class SpinnerModal {
+            constructor(id) {
+                this.modal_id = id
+                document.body.insertAdjacentHTML('afterend', this.modal_html())
+                this.text_el = document.getElementById('spinner_modal_text')
+                this.modal = new bootstrap.Modal(`#${id}`, {
+                    keyboard: false,
+                    backdrop: 'static'
+                })
             }
-            frm += '</select></form>'
-            let dlg = new BsDialogs()
-            dlg.form('Язык', 'Ок', frm)
-            return await dlg.onsubmit()
-        }
 
-        async bs_form(d){
-            d = JSON.parse(d)
-            console.log(d)
-            let dlg = new BsDialogs(d['options'])
-            dlg.form(decodeURIComponent(d['frm_header']), decodeURIComponent(d['btn']), decodeURIComponent(d['frm']))
-            return await dlg.onsubmit()
-        }
-
-        fill_description(d) {
-            d = JSON.parse(d)
-            for (const [key, value] of Object.entries(d)) {
-                document.getElementById(key).innerHTML = decodeURIComponent(value)
-            }
-        }
-    }
-
-
-    class SpinnerModal {
-        constructor(id) {
-            this.modal_id = id
-            document.body.insertAdjacentHTML('afterend', this.modal_html())
-            this.text_el = document.getElementById('spinner_modal_text')
-            this.modal = new bootstrap.Modal(`#${id}`, {
-                keyboard: false,
-                backdrop: 'static'
-            })
-        }
-
-        modal_html() {
-            return `<div id="spinner_modal" class="modal" tabindex="-1">
+            modal_html() {
+                return `<div id="spinner_modal" class="modal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-body d-flex justify-content-between">
@@ -584,48 +602,110 @@
         </div>
     </div>
 </div>`
+            }
+
+            show() {
+                this.modal.show()
+            }
+
+            hide() {
+                this.text_el.innerText = ''
+                this.modal.hide()
+            }
+
+            text(d) {
+                this.text_el.innerText = d
+                console.log('text:', d)
+            }
         }
 
-        show() {
-            this.modal.show()
+
+        class ProgressBarModal {
+            constructor() {
+                this.modal_id = 'progressbar_modal'
+
+                document.body.insertAdjacentHTML('afterend', this.modal_html())
+                this.modal_el = document.getElementById(this.modal_id)
+                this.div_h = this.modal_el.getElementsByClassName('md_h')[0]
+                this.progress = this.modal_el.getElementsByClassName('progress-bar')[0]
+                this.div_f = this.modal_el.getElementsByClassName('md_f')[0]
+                this.modal = new bootstrap.Modal(`#${this.modal_id}`, {
+                    keyboard: false,
+                    backdrop: 'static'
+                })
+            }
+
+            modal_html() {
+                return `<div id="${this.modal_id}" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="md_h"></div>
+                <div class="mt-2">
+                    <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="0"
+                         aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="width: 0"></div>
+                    </div>
+                </div>
+                <div class="md_f"></div>
+            </div>
+        </div>
+    </div>
+</div>`
+            }
+
+            show() {
+                this.modal.show()
+            }
+
+            hide() {
+                this.modal.hide()
+            }
+
+            update_header(d) {
+                this.div_h.innerHTML = d
+            }
+
+            update_footer(d) {
+                this.div_f.innerHTML = d
+            }
+
+            update_percent(d) {
+                this.progress.style.width = `${d}%`
+            }
         }
 
-        hide() {
-            this.text_el.innerText = ''
-            this.modal.hide()
+
+        class Errors {
+            constructor(el_btn) {
+                this.el_btn = el_btn
+                el_btn.style.visibility = 'hidden'
+            }
+
+            show() {
+
+            }
+
+            add_warning() {
+
+            }
+
+            add_error() {
+
+            }
         }
 
-        text(d) {
-            this.text_el.innerText = d
-            console.log('text:', d)
-        }
-    }
+        err = new Errors(document.getElementById('err_btn'))
+        app = new App(document.getElementById('main_title'))
+        spinner_modal = new SpinnerModal('spinner_modal')
+        pb = new ProgressBarModal()
+        copy_input = new CopyInput([
+            document.getElementById('header'),
+            document.getElementById('phpbb_screenshot'),
+            document.getElementById('preliminary_description'),
+            document.getElementById('tech_data')
+        ])
 
-
-    class Errors{
-        constructor(el_btn) {
-            this.el_btn = el_btn
-            el_btn.style.visibility = 'hidden'
-        }
-        show(){
-
-        }
-
-        add_warning(){
-
-        }
-
-        add_error(){
-
-        }
-    }
-
-    err = new Errors(document.getElementById('err_btn'))
-    app = new App(document.getElementById('main_title'))
-    spinner_modal = new SpinnerModal('spinner_modal')
-
-
-
-</script>
+    </script>
 </body>
 </html>

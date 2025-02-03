@@ -6,11 +6,13 @@ import os.path
 import pickle
 import re
 import shutil
+import tempfile
 import urllib.parse
 from dataclasses import dataclass
 from uuid import uuid4
 
 import psutil
+import py7zr
 import requests
 import webview
 from PIL import Image
@@ -18,6 +20,7 @@ from imdb import IMDb
 from pymediainfo import MediaInfo
 from screeninfo import get_monitors
 
+from async_python_test import callback
 from lib.lang import Lang
 from lib.settings import *
 from lib.wv_async import WVAsync, Settings, JsAsync
@@ -199,7 +202,6 @@ class MIAudio:
     title_translate_type: str = ''
 
 
-
 @dataclass
 class MI:
     video_width: int = 0
@@ -334,8 +336,6 @@ class MI:
         return "%s %s" % (s, size_name[i])
 
 
-
-
 @dataclass
 class AppSettings(Settings):
     main_window_width: int = 800
@@ -349,7 +349,7 @@ class AppSettings(Settings):
     def __init__(self):
         super().__init__()
         self._screen()
-        self.path_ffmpeg = os.path.join(self.path_add, 'ffmpeg.exe')
+        self.path_ffmpeg = os.path.join(self.path_add, 'ffmpeg', 'ffmpeg.exe')
         self.screenshots_path = os.path.join(self.path_web, 'work', 'screenshots')
 
     def _screen(self):
@@ -360,12 +360,110 @@ class AppSettings(Settings):
                 return
 
 
+class Updator:
+    def __init__(self, lib_folder: str, version_dict: dict, url: str, cb=None):
+        self.lib_folder = lib_folder
+        self.version_dict = version_dict  # {'ffmpeg': 1, 'imgupload': 1}
+        self.url = url
+        self._chunk_size = 524288
+        self._chunk_dec = 0
+        self._chunk_total = 0
+        self._callback = cb
+        self._run()
+
+    def _run(self):
+        download_lib_list = []
+
+        for lib, ver in self.version_dict.items():
+            lib_dir = os.path.join(self.lib_folder, lib)
+            if os.path.isdir(lib_dir):
+                if not self._check_v_file(lib):
+                    download_lib_list.append(lib)
+            else:
+                download_lib_list.append(lib)
+
+        if len(download_lib_list) == 0:
+            return
+
+        self._progress({'start': True})
+
+        total_size = 0
+
+        print('download_lib_list', download_lib_list)
+
+        for lib in download_lib_list:
+            ext = f"{self.url}{lib}_{self.version_dict[lib]}.7z"
+            print(f"Downloading {ext}")
+            # Find Total Download Size
+            response = requests.get(ext, stream=True)
+            # Find Total Download Size
+            total_size += int(response.headers.get('content-length'))
+            print('total_size', total_size)
+
+        self._chunk_total  =  total_size / self._chunk_size
+        self._chunk_dec = total_size / self._chunk_size
+
+        for lib in download_lib_list:
+            self._download_lib(lib)
+
+        self._progress({'end': True})
+
+    def _check_v_file(self, lib):
+        try:
+            with open(os.path.join(self.lib_folder, lib, 'v.txt')) as f:
+                ver = f.readline()
+                if int(ver) == self.version_dict[lib]:
+                    return True
+        except Exception as e:
+            print(e)
+            return False
+
+
+    def _download_lib(self, lib):
+        temp_dir = tempfile.gettempdir()
+        ext = f"{lib}_{self.version_dict[lib]}.7z"
+        print(f"Downloading {ext}")
+        self._download(self.url + '/' + ext, ext, temp_dir, self._callback)
+        print(temp_dir)
+        with py7zr.SevenZipFile(os.path.join(temp_dir, ext), 'r') as archive:
+            archive.extractall(path=self.lib_folder)
+
+
+    def _download(self, url: str, download_extension: str, file_path: str, progress_callback=None):
+        try:
+            with open(os.path.join(file_path, download_extension), 'wb') as f:
+                response = requests.get(url, stream=True)
+                # Find Total Download Size
+                total_length = response.headers.get('content-length')
+
+                if total_length is None:
+                    f.write(response.content)
+                else:
+                    self._progress({'start': download_extension})
+                    # Write Data To File
+                    for data in response.iter_content(chunk_size=self._chunk_size):
+                        f.write(data)
+                        self._chunk_dec -= 1
+                        self._progress({'chunk': [self._chunk_total, self._chunk_dec]})
+
+
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    def _progress(self, d):
+        if self._callback is not None:
+            self._callback(d)
+
+
 class TorrentCreator:
-    def __init__(self, wv_app: WVAsync):
+    def __init__(self, wv_app: WVAsync, lib_dict: dict):
         super().__init__()
         self.s = AppSettings()
         self.ini_s = IniSettings(os.path.join(self.s.path_add, 'settings.yaml'))
         self.wv_app = wv_app
+        self._lib_dict = lib_dict
         self.mi = MI()
         self.kinopoisk: KinoPoisk
         self.imbd: IMDB
@@ -377,6 +475,8 @@ class TorrentCreator:
         self.wv_app.registry('upload_screenshots', self.upload_screenshots)
         self.wv_app.registry('show_settings', self._show_settings)
         self.wv_app.registry('load_kinopoisk', self._load_kinopoisk)
+
+
 
     async def _on_closing(self, d):
         print('closing')
@@ -400,7 +500,27 @@ class TorrentCreator:
 
     def on_loaded(self):
         """ on load dom main window """
+        print('on_loaded')
+        self.wv_app.jq.sync_q.put_nowait({'on_dom_content_loaded': True})
+        update = Updator(
+            self.s.path_add,
+            self._lib_dict,
+            'https://github.com/atitoff/torrent_creator/releases/download/0.10/',
+            cb=self._updator_callback
+        )
         self._empty_all()
+
+    def _updator_callback(self, d):
+        if 'start' in d:
+            self.wv_app.window.evaluate_js('''pb.update_header('Загружаем необходимые библиотеки')''')
+            self.wv_app.window.evaluate_js('pb.show()')
+        elif 'chunk' in d:
+            percent = math.ceil((d['chunk'][0] - d['chunk'][1]) / d['chunk'][0] * 100)
+            if percent >= 100:
+                percent = 100
+            self.wv_app.window.evaluate_js(f'''pb.update_percent({percent})''')
+        elif 'end' in d:
+            self.wv_app.window.evaluate_js('pb.hide()')
 
     async def bs_form(self, frm_header, frm, btn, options=None):
         if options is None:
@@ -832,3 +952,5 @@ class Kinozal:
             return codecs[self.mi.video_format]
         except KeyError:
             return self.mi.video_format
+
+

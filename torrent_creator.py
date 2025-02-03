@@ -3,7 +3,6 @@ import webview
 from lib.wv_async import WVAsync, JsApi
 from lib.torrent_creator_lib import TorrentCreator
 
-
 # add user function
 class Js(JsApi):
     def minimize(self):
@@ -17,10 +16,13 @@ class Js(JsApi):
         wv_app.on_closing()
 
 
+lib_dict = {'ffmpeg': 1, 'imgupload': 1}
+
+
 wv_app = WVAsync()
 js_api = Js(wv_app.jq)
 
-app = TorrentCreator(wv_app)
+app = TorrentCreator(wv_app, lib_dict)
 
 
 window = webview.create_window(
@@ -30,6 +32,8 @@ window = webview.create_window(
 window_slave = webview.create_window('Slave', hidden=True, url='web/slave.html', js_api=js_api, frameless=True)
 
 window.events.loaded += app.on_loaded
+
+
 
 wv_app.start(window, window_slave)
 
